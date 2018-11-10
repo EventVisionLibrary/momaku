@@ -1,5 +1,5 @@
-from . import ObjectBase
 import numpy as np
+from objects import ObjectBase
 
 
 class Field(ObjectBase):
