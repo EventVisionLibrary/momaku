@@ -14,9 +14,9 @@ class SubjectBase(ObjectBase):
         self.position = position    # [m]
         self.velocity = velocity    # [m/s**2]
 
-    def updateDynamics(self, new_direction, new_poisition, new_velocity):
+    def updateDynamics(self, new_direction, new_position, new_velocity):
         self.direction = new_direction
-        self.position = new_poisition
+        self.position = new_position
         self.velocity = new_velocity
 
     def checkActionListIsDefined(self):

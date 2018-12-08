@@ -10,12 +10,12 @@ class SimpleWalker(SubjectBase):
         super(SimpleWalker, self).__init__(mass)
 
     def upward(self, dt, v=np.array([0., 0., 0.1])):
-        new_poisition = self.position + dt * v
-        self.updateDynamics(self.direction, new_poisition, v)
+        new_position = self.position + dt * v
+        self.updateDynamics(self.direction, new_position, v)
         
     def downward(self, dt, v=np.array([0., 0., -0.1])):
-        new_poisition = self.position + dt * v
-        self.updateDynamics(self.direction, new_poisition, v)
+        new_position = self.position + dt * v
+        self.updateDynamics(self.direction, new_position, v)
 
     def rotate(self, dt, angular_v=0.001):
         dtheta = angular_v * dt

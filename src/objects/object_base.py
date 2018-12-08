@@ -14,12 +14,11 @@ class ObjectBase(object):
         self.mass = 1.0             # [kg]
         self.color = color          # [r, g, b]
         self.is_visible = True
-        print('Please initializeDynamics().')
 
     def initializeDynamics(self, position=np.zeros(3), velocity=np.zeros(3)):
-        self.position = position    # [m]
-        self.velocity = velocity    # [m/s**2]
+        self.position = np.array(position)    # [m]
+        self.velocity = np.array(velocity)    # [m/s**2]
 
-    def updateDynamics(self, new_poisition, new_velocity):
-        self.position = new_poisition
+    def updateDynamics(self, new_position, new_velocity):
+        self.position = new_position
         self.velocity = new_velocity

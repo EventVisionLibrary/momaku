@@ -16,8 +16,10 @@ class Field(ObjectBase):
         self.setVertices()
 
     def setVertices(self):
-        self.vertices[:, :2] = np.array([[size, size],[size, -size], 
-                                         [-size, -size], [-size, size]])
+        self.vertices[:, :2] = np.array([[self.size, self.size],
+                                         [self.size, -self.size], 
+                                         [-self.size, -self.size],
+                                         [-self.size, self.size]])
         self.vertices[:, 2] = self.position[2]
 
     def updateDynamics(self, *args, **kargs):
