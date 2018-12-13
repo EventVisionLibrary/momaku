@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #coding:utf-8
 import sys
+import time
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
@@ -33,7 +34,8 @@ def main():
     glutDisplayFunc(display)
     glutReshapeFunc(reshape)
     init(300, 300)
-    glutMainLoop()
+    while True:
+        display()
 
 
 def init(width, height):
