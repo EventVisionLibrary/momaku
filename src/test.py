@@ -70,23 +70,23 @@ class Renderer():
         # 3
         glVertex3f(*vertices[0])
         glVertex3f(*vertices[1])
-        glVertex3f(*vertices[4])
         glVertex3f(*vertices[5])
+        glVertex3f(*vertices[4])
         # 4
         glVertex3f(*vertices[2])
         glVertex3f(*vertices[3])
-        glVertex3f(*vertices[6])
         glVertex3f(*vertices[7])
+        glVertex3f(*vertices[6])
         # 5
         glVertex3f(*vertices[1])
         glVertex3f(*vertices[2])
-        glVertex3f(*vertices[5])
         glVertex3f(*vertices[6])
+        glVertex3f(*vertices[5])
         # 6
         glVertex3f(*vertices[0])
         glVertex3f(*vertices[3])
-        glVertex3f(*vertices[4])
         glVertex3f(*vertices[7])
+        glVertex3f(*vertices[4])
 
     def render_objects(self, objects):
         glRotatef(-90, 1, 0, 0)  # Straight rotation
