@@ -7,15 +7,20 @@ import glfw
 from objects.cube import SolidCube
 from objects.sphere import SolidSphere
 
-light_ambient = [0.25, 0.25, 0.25]
-light_position = [10, 5, 0, 2]
-
+# color of materials
+ambient = [0.25, 0.25, 0.25]
+diffuse = [1.0, 0.0, 0.0]
+specular = [1.0, 1.0, 1.0]
+shininess = 32.0
 
 class Renderer():
-
     def __init__(self, camera_position=None):
         self.display_width = 900
         self.display_height = 900
+
+        self.light_ambient = [0.25, 0.25, 0.25]
+        self.light_position = [10, 5, 0, 2]
+        self.light_specular = [1.0, 1.0, 1.0]
 
         self.camera_position = camera_position
 
@@ -47,8 +52,9 @@ class Renderer():
         glDepthFunc(GL_LEQUAL)
 
     def setup_light(self):
-        glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient)  # 環境光
-        glLightfv(GL_LIGHT0, GL_POSITION, light_position)  # 光源の位置
+        glLightfv(GL_LIGHT0, GL_AMBIENT, self.light_ambient)  # 環境光
+        glLightfv(GL_LIGHT0, GL_POSITION, self.light_position)  # 光源の位置
+        glLightfv(GL_LIGHT0, GL_SPECULAR, self.light_specular)
         glEnable(GL_LIGHT0)
         glEnable(GL_LIGHTING)
 
@@ -94,6 +100,11 @@ class Renderer():
         glRotatef(285, 0, 0, 1)  # Rotate yaw
         glTranslatef(-15, -5, -5)  # Move to position
 
+        glMaterialfv(GL_FRONT, GL_AMBIENT, ambient)
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse)
+        glMaterialfv(GL_FRONT, GL_SPECULAR, specular)
+        glMaterialfv(GL_FRONT, GL_SHININESS, shininess)
+
         glBegin(GL_QUADS)
         for obj in objects:
             glColor3f(*obj.color)
@@ -107,11 +118,13 @@ class Renderer():
         return image
 
 if __name__ == "__main__":
-
     cube = SolidCube(size=1.0)
-    cube.vertices = [[2, 2, 0], [2, 2, 2], [2, 6, 2], [2, 6, 0],
-                     [4, 2, 0], [4, 2, 2], [4, 6, 2], [4, 6, 0]
-                     ]
+
     renderer = Renderer()
-    image = renderer.render_objects([cube])
-    cv2.imwrite("image.png", image)
+    cube.vertices = np.array([[2, 2, 0], [2, 2, 2], [2, 6, 2], [2, 6, 0],
+                              [4, 2, 0], [4, 2, 2], [4, 6, 2], [4, 6, 0]], dtype=np.float64)
+    for i in range(0, 20):
+        cube.vertices[:, 0] -= 0.002 * i
+        # cube.vertices[:, 1] += 0.002 * i
+        image = renderer.render_objects([cube])
+        cv2.imwrite("image" + str(i) + ".png", image)
