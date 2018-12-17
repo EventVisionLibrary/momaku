@@ -26,6 +26,7 @@ class Renderer():
 
         self.setup_display()
         self.setup_light()
+        self.setup_perspective()
 
     def __del__(self):
         glfw.destroy_window(self.window)
@@ -57,6 +58,11 @@ class Renderer():
         glLightfv(GL_LIGHT0, GL_SPECULAR, self.light_specular)
         glEnable(GL_LIGHT0)
         glEnable(GL_LIGHTING)
+
+    def setup_perspective(self):
+        glRotatef(-90, 1, 0, 0)  # Straight rotation
+        glRotatef(285, 0, 0, 1)  # Rotate yaw
+        glTranslatef(-15, -5, -5)  # Move to position
 
     def __draw_sphere(self, sphere):
         raise NotImplementedError
@@ -95,10 +101,7 @@ class Renderer():
         glVertex3f(*vertices[4])
 
     def render_objects(self, objects):
-        glRotatef(-90, 1, 0, 0)  # Straight rotation
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        glRotatef(285, 0, 0, 1)  # Rotate yaw
-        glTranslatef(-15, -5, -5)  # Move to position
 
         glMaterialfv(GL_FRONT, GL_AMBIENT, ambient)
         glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse)
@@ -124,7 +127,7 @@ if __name__ == "__main__":
     cube.vertices = np.array([[2, 2, 0], [2, 2, 2], [2, 6, 2], [2, 6, 0],
                               [4, 2, 0], [4, 2, 2], [4, 6, 2], [4, 6, 0]], dtype=np.float64)
     for i in range(0, 20):
-        cube.vertices[:, 0] -= 0.002 * i
+        cube.vertices[:, 1] -= 0.2 * i
         # cube.vertices[:, 1] += 0.002 * i
         image = renderer.render_objects([cube])
-        cv2.imwrite("image" + str(i) + ".png", image)
+        cv2.imwrite("../fig/image" + str(i) + ".png", image)
