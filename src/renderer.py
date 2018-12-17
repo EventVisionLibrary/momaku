@@ -14,7 +14,7 @@ specular = [1.0, 1.0, 1.0]
 shininess = 32.0
 
 class Renderer():
-    def __init__(self, camera_position=None):
+    def __init__(self, camera_position=None, target_position=None):
         self.display_width = 900
         self.display_height = 900
 
@@ -23,6 +23,7 @@ class Renderer():
         self.light_specular = [1.0, 1.0, 1.0]
 
         self.camera_position = camera_position
+        self.target_position = target_position
 
         self.setup_display()
         self.setup_light()
@@ -60,9 +61,13 @@ class Renderer():
         glEnable(GL_LIGHTING)
 
     def setup_perspective(self):
-        glRotatef(-90, 1, 0, 0)  # Straight rotation
-        glRotatef(285, 0, 0, 1)  # Rotate yaw
-        glTranslatef(-15, -5, -5)  # Move to position
+        gluLookAt(*self.camera_position, *self.target_position, 0, 0, 1) # the last 3 is fixed
+
+    def update_perspective(self, new_camera_position, new_target_position):
+        #glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        self.camera_position = new_camera_position
+        self.target_position = new_target_position
+        self.setup_perspective()
 
     def __draw_sphere(self, sphere):
         raise NotImplementedError
@@ -123,11 +128,15 @@ class Renderer():
 if __name__ == "__main__":
     cube = SolidCube(size=1.0)
 
-    renderer = Renderer()
+    camera_position = [-1, -1, -1]
+    target_position = [3, 3, 3]
+    renderer = Renderer(camera_position=camera_position, target_position=target_position)
     cube.vertices = np.array([[2, 2, 0], [2, 2, 2], [2, 6, 2], [2, 6, 0],
                               [4, 2, 0], [4, 2, 2], [4, 6, 2], [4, 6, 0]], dtype=np.float64)
     for i in range(0, 20):
-        cube.vertices[:, 1] -= 0.2 * i
-        # cube.vertices[:, 1] += 0.002 * i
+        cube.vertices[:, 1] += 0.2
+        #camera_position[0] -= 0.1
+        #camera_position[1] -= 0.1
+        #renderer.update_perspective(camera_position, target_position)
         image = renderer.render_objects([cube])
         cv2.imwrite("../fig/image" + str(i) + ".png", image)
