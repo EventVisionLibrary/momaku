@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class ObjectBase():
+class ObjectBase(object):
     """
     Object Base class.
     This class has:
@@ -16,15 +16,9 @@ class ObjectBase():
         self.is_visible = True
 
     def initializeDynamics(self, position=np.zeros(3), velocity=np.zeros(3)):
-        self.position = position    # [m]
-        self.velocity = velocity    # [m/s**2]
+        self.position = np.array(position)    # [m]
+        self.velocity = np.array(velocity)    # [m/s**2]
 
-    def updateDynamics(self, new_poisition, new_velocity):
-        self.updatePosition(new_poisition)
-        self.updateVelocity(new_velocity)
-
-    def updatePosition(self, new_poisition):
-        self.position = new_poisition
-
-    def updateVelocity(self, new_velocity):
+    def updateDynamics(self, new_position, new_velocity):
+        self.position = new_position
         self.velocity = new_velocity
