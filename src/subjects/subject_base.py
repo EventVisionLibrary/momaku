@@ -9,7 +9,7 @@ class SubjectBase(ObjectBase):
         super(SubjectBase, self).__init__(mass)
         self.checkActionListIsDefined()
 
-    def initializeDynamics(self, direction=np.ones(3), position=np.zeros(3), velocity=np.zeros(3)):
+    def initialize_dynamics(self, direction=np.ones(3), position=np.zeros(3), velocity=np.zeros(3)):
         self.direction = direction  # [x, y, z]
         self.position = position    # [m]
         self.velocity = velocity    # [m/s**2]

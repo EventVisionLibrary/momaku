@@ -16,7 +16,7 @@ specular = [1.0, 1.0, 1.0]
 shininess = 32.0
 
 class Renderer():
-    def __init__(self, camera_position=None, target_position=None):
+    def __init__(self, camera_position, target_position):
         self.display_width = 900
         self.display_height = 900
 

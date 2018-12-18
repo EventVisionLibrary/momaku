@@ -1,38 +1,127 @@
-import gym
-from gym import spaces
+# standard
+import time
 
+# external
+import cv2
+import numpy as np
+
+# custom
+from objects.cube import SolidCube
+from objects.sphere import SolidSphere
 from renderer import Renderer
+from subjects.simple_walker import SimpleWalker
 
-class FallingStone(gym.Env):
+
+class FallingStone():
 
     def __init__(self):
-        self.objects = []
-        self.subject = None
-        self.renderer = Renderer()
+        self.time_delta = 1e-3
+        _ = self.reset()
 
-        # action_space
-        self.action_space = spaces.Discrete(4)
-        # observation_space
-        # observation is [(t, x, y, p)]
+    def init_subject(self):
+        subject = SimpleWalker()
+        subject.initialize_dynamics(
+                    position = np.array([-1, -1, -1], dtype=np.float32),
+                    direction = np.array([3, 3, 3], dtype=np.float32),
+                    velocity = np.array([0.01, 0.01, 0.01], dtype=np.float32)
+        )
+        return subject
+
+    def init_objects(self):
+        objects = []
+        # TODO: use initialize_dynamics after completing calc_vertices
+        cube = SolidCube(size=1.0)
+        cube.vertices = np.array([[2, 2, 0], [2, 2, 2], [2, 6, 2], [2, 6, 0],
+                                  [4, 2, 0], [4, 2, 2], [4, 6, 2], [4, 6, 0]], dtype=np.float64)
+        objects.append(cube)
+        return objects
+
+    def init_renderer(self):
+        renderer = Renderer(camera_position=self.subject.position,
+                            target_position=self.subject.direction)
+        return renderer
 
     def move_objects(self):
-        pass
+        self.objects[0].vertices[:, 1] += 0.2
 
     def move_subject(self):
-        pass
+        self.subject.position += self.subject.velocity
 
     def step(self, action):
+        self.timestamp += self.time_delta
         self.move_objects()
         self.move_subject()
+        self.renderer.update_perspective(self.subject.position, self.subject.direction)
 
-        raise NotImplementedError
+        # obs
+        self.current_image = self.renderer.render_objects(self.objects)
+        events = self.__calc_events()
+        self.prev_image = self.current_image
+
+        # reward
+        r = 0.0
+
+        # done
+        done = False
+
+        # info
+        info = {}
+
+        return events, r, done, info
 
     def reset(self):
-        raise NotImplementedError
+        self.timestamp = 0.0
+        self.objects = self.init_objects()
+        self.subject = self.init_subject()
+        self.renderer = self.init_renderer()
+        self.prev_image = np.zeros([self.renderer.display_height, self.renderer.display_width, 3])
+        self.current_image = self.renderer.render_objects(self.objects)
+        events = self.__calc_events()
+        return events
 
     def render(self, mode='human'):
+        # TODO: enable rendering for debug
         raise NotImplementedError
 
+    def __calc_events(self):
+        # TODO: assign time stamp dynamically
+        prev_gray = self.__rgb_to_gray(self.prev_image)
+        current_gray = self.__rgb_to_gray(self.current_image)
+        diff = current_gray - prev_gray
+        events = []
+        for y in range(self.renderer.display_height):
+            for x in range(self.renderer.display_width):
+                pol = diff[y, x]
+                if pol == 0:
+                    continue
+                elif pol > 0:
+                    events.append((self.timestamp, y, x, 1))
+                else:
+                    events.append((self.timestamp, y, x, -1))
+        return events
+
+    def __rgb_to_gray(self, rgb):
+        r, g, b = rgb[:, :, 0], rgb[:, :, 1], rgb[:, :, 2]
+        gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
+        return gray
+
+def events_to_image(events):
+    H = 900
+    W = 900
+    image = np.zeros([H, W, 3])
+    for (t, y, x, p) in events:
+        if p == 1:
+            image[y, x] = (255, 0, 0)
+        else:
+            image[y, x] = (0, 0, 255)
+    return image
 
 if __name__ == '__main__':
     env = FallingStone()
+    start = time.time()
+    N = 20
+    for i in range(0, N):
+        events, r, done, info = env.step(action=None)
+        image = events_to_image(events)
+        cv2.imwrite("../fig/image" + str(i) + ".png", image)
+    print("Average Elapsed Time: {} s".format((time.time() - start) / N))
