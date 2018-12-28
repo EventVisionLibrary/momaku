@@ -29,10 +29,10 @@ class FallingStone():
 
     def init_objects(self):
         objects = []
-        # TODO: use initialize_dynamics after completing calc_vertices
-        cube = SolidCube(size=1.0)
-        cube.vertices = np.array([[2, 2, 0], [2, 2, 2], [2, 6, 2], [2, 6, 0],
-                                  [4, 2, 0], [4, 2, 2], [4, 6, 2], [4, 6, 0]], dtype=np.float64)
+        cube = SolidCube(size=2.0)
+        cube.initialize_dynamics(direction=np.array([np.pi/4, np.pi/4, np.pi/4]),
+                                 position=np.array([3, 1, 1]),
+                                 velocity=np.array([0, 2, 0]))
         objects.append(cube)
         return objects
 
@@ -42,7 +42,8 @@ class FallingStone():
         return renderer
 
     def move_objects(self):
-        self.objects[0].vertices[:, 1] += 0.2
+        for obj in self.objects:
+            obj.update_dynamics(np.array([0, 2, 0]), 0.1)
 
     def move_subject(self):
         self.subject.position += self.subject.velocity
