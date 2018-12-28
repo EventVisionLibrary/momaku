@@ -20,15 +20,15 @@ class FallingStone():
         self.render_height = render_height
         self.reset()
 
-    def init_subject(self):
+    def __init_subject(self):
         # subject = SimpleWalker()
         subject = Gopigo()
         subject.initialize_dynamics(position=np.array([-2, -6, -1], dtype=np.float32),
-                                    direction=np.array([4, 8, 2], dtype=np.float32),
+                                    direction=np.array([4, 8, 3], dtype=np.float32),
                                     velocity=np.array([4, 8, 0], dtype=np.float32))
         return subject
 
-    def init_objects(self): 
+    def __init_objects(self): 
         objects = []
         cube = SolidCube(size=1.0, color=np.array([0.5, 0.5, 0.0]))
         cube.initialize_dynamics(position=np.array([0, 2, -1]),
@@ -41,38 +41,40 @@ class FallingStone():
         objects.append(sphere)
         return objects
 
-    def init_renderer(self):
+    def __init_renderer(self):
         renderer = Renderer(camera_position=self.subject.position,
                             target_position=self.subject.direction,
                             width=self.render_width,
                             height=self.render_height)
         return renderer
 
-    def move_objects(self):
+    def __move_objects(self):
         for obj in self.objects:
-            new_velocity = self.free_fall_velocity(obj)
+            new_velocity = self.__free_fall_velocity(obj)
             obj.update_dynamics(dt=self.dt, new_velocity=new_velocity,
                                 angular_velocity=np.array([np.pi, 0, 0]))
 
-    def free_fall_velocity(self, obj):
+    def __free_fall_velocity(self, obj):
+        # TODO: implement air resistance
         return obj.velocity + self.dt * np.array([0, 0, 9.8])
 
-    def move_subject(self, action):
+    def __move_subject(self, action):
         getattr(self.subject, action)(self.dt)
 
     def step(self, action):
         if self.done:
             raise Exception("The game already finished.")
         self.timestamp += self.dt
-        self.move_objects()
-        self.move_subject(action)
+        self.__move_objects()
+        self.__move_subject(action)
         self.renderer.update_perspective(
             self.subject.position, self.subject.position + self.subject.direction)
 
         # obs
-        self.current_image = self.renderer.render_objects(self.objects, True)
+        current_image = self.renderer.render_objects(self.objects, True)
+        self.current_intensity = self.__rgb_to_intensity(current_image)
         events = self.__calc_events()
-        self.prev_image = self.current_image
+        self.prev_intensity = self.current_intensity
 
         if self.__is_collision():
             r = -1.0
@@ -86,11 +88,13 @@ class FallingStone():
     def reset(self):
         self.done = False
         self.timestamp = 0.0
-        self.objects = self.init_objects()
-        self.subject = self.init_subject()
-        self.renderer = self.init_renderer()
-        self.prev_image = np.zeros([self.renderer.display_height, self.renderer.display_width, 3])
-        self.current_image = self.renderer.render_objects(self.objects)
+        self.objects = self.__init_objects()
+        self.subject = self.__init_subject()
+        self.renderer = self.__init_renderer()
+        prev_image = np.zeros([self.renderer.display_height, self.renderer.display_width, 3])
+        current_image = self.renderer.render_objects(self.objects)
+        self.prev_intensity = self.__rgb_to_intensity(prev_image)
+        self.current_intensity = self.__rgb_to_intensity(current_image)
 
     def render(self, mode='human'):
         # TODO: enable rendering for debug
@@ -119,19 +123,10 @@ class FallingStone():
 
     def __calc_events(self):
         # TODO: assign time stamp dynamically
-        prev_intensity = self.__rgb_to_intensity(self.prev_image)
-        current_intensity = self.__rgb_to_intensity(self.current_image)
-        diff = current_intensity - prev_intensity
-        events = []
-        for y in range(self.renderer.display_height):
-            for x in range(self.renderer.display_width):
-                pol = diff[y, x]
-                if pol == 0:
-                    continue
-                elif pol > 0:
-                    events.append((self.timestamp, y, x, 1))
-                else:
-                    events.append((self.timestamp, y, x, -1))
+        diff = np.sign(self.current_intensity - self.prev_intensity).astype(np.int32)
+        event_index = np.where(np.abs(diff) > 0)
+        events = np.array([np.full(len(event_index[0]), self.timestamp, dtype=np.int32),
+                           event_index[0], event_index[1], diff[event_index]]).T
         return events
 
     def __rgb_to_intensity(self, rgb):
@@ -149,16 +144,18 @@ def events_to_image(events, width, height):
     return image
 
 if __name__ == '__main__':
-    w, h = 400, 400
+    w, h = 800, 800
     env = FallingStone(render_width=w, render_height=h)
-    start = time.time()
     N = 30
+    executed_times = []
     for i in range(0, N):
+        start = time.time()
         try:
             events, r, done, info = env.step(action='forward')
         except Exception as inst:
             print(inst)
             break
         image = events_to_image(events, w, h)
+        executed_times.append(time.time() - start)
         cv2.imwrite("../fig/image" + str(i) + ".png", image)
-    print("Average Elapsed Time: {} s".format((time.time() - start) / N))
+    print("Average Elapsed Time: {} s".format(np.mean(executed_times)))
