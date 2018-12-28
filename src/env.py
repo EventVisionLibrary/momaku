@@ -11,6 +11,8 @@ from renderer import Renderer
 from subjects.simple_walker import SimpleWalker
 from subjects.gopigo_simulator import Gopigo
 
+COLLISION_THRESHOLD = 1.0
+
 class FallingStone():
     def __init__(self):
         self.dt = 1e-2
@@ -31,6 +33,10 @@ class FallingStone():
                                  direction=np.array([np.pi/4, np.pi/4, np.pi/4]),
                                  velocity=np.array([0, 2, 0]))
         objects.append(cube)
+        sphere = SolidSphere(radius=0.5)
+        sphere.initialize_dynamics(position=np.array([1, 1, 1]),
+                                 velocity=np.array([-1, -1, -1]))
+        objects.append(sphere)
         return objects
 
     def init_renderer(self):
@@ -47,6 +53,9 @@ class FallingStone():
         getattr(self.subject, action)(self.dt)
 
     def step(self, action):
+        if self.done:
+            print("[Error] the game already finished.")
+            raise Exception
         self.timestamp += self.dt
         self.move_objects()
         self.move_subject(action)
@@ -54,16 +63,21 @@ class FallingStone():
             self.subject.position, self.subject.direction)
 
         # obs
-        self.current_image = self.renderer.render_objects(self.objects, True)
+        self.current_image = self.renderer.render_objects(self.objects, False)
         events = self.__calc_events()
         self.prev_image = self.current_image
 
-        r = 0.0                 # reward
-        done = False
+        if self.__is_collision():
+            r = -1.0
+            self.done = True
+        else:
+            r = 0.1
+            self.done = False
         info = {}
-        return events, r, done, info
+        return events, r, self.done, info
 
     def reset(self):
+        self.done = False
         self.timestamp = 0.0
         self.objects = self.init_objects()
         self.subject = self.init_subject()
@@ -76,6 +90,27 @@ class FallingStone():
     def render(self, mode='human'):
         # TODO: enable rendering for debug
         raise NotImplementedError
+
+    def __is_collision(self):
+        for obj in self.objects:
+            if isinstance(obj, SolidSphere):
+                if self.__check_sphere_collision(obj):
+                    return True
+            if isinstance(obj, SolidCube):
+                if self.__check_cube_collision(obj):
+                    return True
+        return False
+
+    def __check_sphere_collision(self, sphere):
+        d = np.sum((sphere.position - self.subject.position)**2)
+        print("distance: ", np.sqrt(d))
+        if d < (COLLISION_THRESHOLD+sphere.radius)**2:
+            return True
+        else:
+            return False
+
+    def __check_cube_collision(self, cube):
+        pass
 
     def __calc_events(self):
         # TODO: assign time stamp dynamically
