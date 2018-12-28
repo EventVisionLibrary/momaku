@@ -8,16 +8,14 @@ class Gopigo(SubjectBase):
     Simple Simulator for GoPiGo
     """
     def __init__(self, mass=0.6):
-        self.action_list = ['go', 'back', 'stop']
+        self.action_list = ['forward', 'backward', 'stop']
         super(Gopigo, self).__init__(mass)
 
-    def go(self, dt, v=np.array([1., 0., 0.])):
-        new_position = self.position + dt * self.velocity
-        self.update_dynamics(v, new_position, v)
+    def forward(self, dt, v=np.array([1., 0., 0.])):
+        self.update_dynamics(dt, v, v)
 
-    def back(self, dt, v=np.array([-1., 0., 0.])):
-        new_position = self.position + dt * self.velocity
-        self.update_dynamics(v, new_position, v)
+    def backward(self, dt, v=np.array([-1., 0., 0.])):
+        self.update_dynamics(dt, v, v)
 
     def right(self):
         raise NotImplementedError
@@ -26,4 +24,4 @@ class Gopigo(SubjectBase):
         raise NotImplementedError
 
     def stop(self):
-        self.update_dynamics(self.direction, self.position, np.array([0.0, 0.0, 0.0]))
+        self.update_dynamics(dt, self.direction, np.array([0.0, 0.0, 0.0]))

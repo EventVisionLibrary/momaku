@@ -12,26 +12,23 @@ from subjects.simple_walker import SimpleWalker
 from subjects.gopigo_simulator import Gopigo
 
 class FallingStone():
-
     def __init__(self):
-        self.time_delta = 1e-3
+        self.dt = 1e-2
         _ = self.reset()
 
     def init_subject(self):
         # subject = SimpleWalker()
         subject = Gopigo()
-        subject.initialize_dynamics(
-                    position = np.array([-1, -1, -1], dtype=np.float32),
-                    direction = np.array([3, 3, 3], dtype=np.float32),
-                    velocity = np.array([0.1, 0.1, 0.1], dtype=np.float32)
-        )
+        subject.initialize_dynamics(position=np.array([-1, -1, -1], dtype=np.float32),
+                                    direction=np.array([3, 3, 3], dtype=np.float32),
+                                    velocity=np.array([0.1, 0.1, 0.1], dtype=np.float32))
         return subject
 
     def init_objects(self):
         objects = []
         cube = SolidCube(size=2.0)
-        cube.initialize_dynamics(direction=np.array([np.pi/4, np.pi/4, np.pi/4]),
-                                 position=np.array([2, 4, 1]),
+        cube.initialize_dynamics(position=np.array([2, 4, 1]),
+                                 direction=np.array([np.pi/4, np.pi/4, np.pi/4]),
                                  velocity=np.array([0, 2, 0]))
         objects.append(cube)
         return objects
@@ -43,18 +40,18 @@ class FallingStone():
 
     def move_objects(self):
         for obj in self.objects:
-            obj.update_dynamics(dt=0.1, new_velocity=np.array([0, 2, 0]), 
+            obj.update_dynamics(dt=self.dt, new_velocity=np.array([0, 2, 0]), 
                                 angular_velocity=np.array([0, np.pi, 0]))
 
     def move_subject(self, action):
-        # self.subject.position += self.subject.velocity
-        getattr(self.subject, action)(0.05)
+        getattr(self.subject, action)(self.dt)
 
     def step(self, action):
-        self.timestamp += self.time_delta
+        self.timestamp += self.dt
         self.move_objects()
         self.move_subject(action)
-        self.renderer.update_perspective(self.subject.position, self.subject.direction)
+        self.renderer.update_perspective(
+            self.subject.position, self.subject.direction)
 
         # obs
         self.current_image = self.renderer.render_objects(self.objects, True)
@@ -118,7 +115,7 @@ if __name__ == '__main__':
     start = time.time()
     N = 20
     for i in range(0, N):
-        events, r, done, info = env.step(action='back')
+        events, r, done, info = env.step(action='forward')
         image = events_to_image(events)
         cv2.imwrite("../fig/image" + str(i) + ".png", image)
     print("Average Elapsed Time: {} s".format((time.time() - start) / N))
