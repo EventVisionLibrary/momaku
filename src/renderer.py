@@ -191,7 +191,7 @@ class Renderer():
 
         image_buffer = glReadPixels(0, 0, self.display_width, self.display_height,
                                     OpenGL.GL.GL_RGB, OpenGL.GL.GL_UNSIGNED_BYTE)
-        image = np.frombuffer(image_buffer, dtype=np.uint8).reshape(self.display_width, self.display_height, 3)
+        image = np.frombuffer(image_buffer, dtype=np.uint8).reshape(self.display_height, self.display_width, 3)
         return image
 
 if __name__ == "__main__":
