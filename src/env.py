@@ -15,7 +15,7 @@ COLLISION_THRESHOLD = 1.0
 
 class FallingStone():
     def __init__(self, dt=1e-2, render_width=900, render_height=900):
-        self.dt = 1e-2
+        self.dt = 0.03
         self.render_width = render_width
         self.render_height = render_height
         self.reset()
@@ -23,9 +23,9 @@ class FallingStone():
     def init_subject(self):
         # subject = SimpleWalker()
         subject = Gopigo()
-        subject.initialize_dynamics(position=np.array([-1, -3, -1], dtype=np.float32),
-                                    direction=np.array([4, 6, 4], dtype=np.float32),
-                                    velocity=np.array([1, 1, 0.], dtype=np.float32))
+        subject.initialize_dynamics(position=np.array([-2, -6, -1], dtype=np.float32),
+                                    direction=np.array([4, 8, 2], dtype=np.float32),
+                                    velocity=np.array([4, 8, 0], dtype=np.float32))
         return subject
 
     def init_objects(self): 
@@ -33,14 +33,10 @@ class FallingStone():
         cube = SolidCube(size=1.0, color=np.array([0.5, 0.5, 0.0]))
         cube.initialize_dynamics(position=np.array([0, 2, -1]),
                                  direction=np.ones(3),
-                                 velocity=np.array([0., 2., 0.]))
-        # cube = SolidCube(size=2.0)
-        # cube.initialize_dynamics(position=np.array([2, 0, 1]),
-        #                          direction=np.array([np.pi/4, np.pi/4, np.pi/4]),
-        #                          velocity=np.array([0, 0, -1]))
+                                 velocity=np.array([0., 0., 0.]))
         objects.append(cube)
         sphere = SolidSphere(radius=0.5)
-        sphere.initialize_dynamics(position=np.array([1, 1, -1]),
+        sphere.initialize_dynamics(position=np.array([1, 1, -5]),
                                    velocity=np.array([0, 0, 2]))
         objects.append(sphere)
         return objects
@@ -54,20 +50,19 @@ class FallingStone():
 
     def move_objects(self):
         for obj in self.objects:
-            new_velocity = self.falling_velocity(obj)
+            new_velocity = self.free_fall_velocity(obj)
             obj.update_dynamics(dt=self.dt, new_velocity=new_velocity,
                                 angular_velocity=np.array([np.pi, 0, 0]))
 
-    def falling_velocity(self, obj):
-        return obj.velocity + self.dt * 9.8
+    def free_fall_velocity(self, obj):
+        return obj.velocity + self.dt * np.array([0, 0, 9.8])
 
     def move_subject(self, action):
         getattr(self.subject, action)(self.dt)
 
     def step(self, action):
         if self.done:
-            print("[Error] the game already finished.")
-            raise Exception
+            raise Exception("The game already finished.")
         self.timestamp += self.dt
         self.move_objects()
         self.move_subject(action)
@@ -124,9 +119,9 @@ class FallingStone():
 
     def __calc_events(self):
         # TODO: assign time stamp dynamically
-        prev_gray = self.__rgb_to_gray(self.prev_image)
-        current_gray = self.__rgb_to_gray(self.current_image)
-        diff = current_gray - prev_gray
+        prev_intensity = self.__rgb_to_intensity(self.prev_image)
+        current_intensity = self.__rgb_to_intensity(self.current_image)
+        diff = current_intensity - prev_intensity
         events = []
         for y in range(self.renderer.display_height):
             for x in range(self.renderer.display_width):
@@ -139,10 +134,10 @@ class FallingStone():
                     events.append((self.timestamp, y, x, -1))
         return events
 
-    def __rgb_to_gray(self, rgb):
+    def __rgb_to_intensity(self, rgb):
         r, g, b = rgb[:, :, 0], rgb[:, :, 1], rgb[:, :, 2]
-        gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
-        return gray
+        intensity = 0.2989 * r + 0.5870 * g + 0.1140 * b
+        return intensity
 
 def events_to_image(events, width, height):
     image = np.zeros([height, width, 3], dtype=np.uint8)
@@ -157,9 +152,13 @@ if __name__ == '__main__':
     w, h = 400, 400
     env = FallingStone(render_width=w, render_height=h)
     start = time.time()
-    N = 20
+    N = 30
     for i in range(0, N):
-        events, r, done, info = env.step(action='forward')
+        try:
+            events, r, done, info = env.step(action='forward')
+        except Exception as inst:
+            print(inst)
+            break
         image = events_to_image(events, w, h)
         cv2.imwrite("../fig/image" + str(i) + ".png", image)
     print("Average Elapsed Time: {} s".format((time.time() - start) / N))
