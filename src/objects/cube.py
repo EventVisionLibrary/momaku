@@ -20,9 +20,9 @@ class SolidCube(ObjectBase):
                                            [1, -1, -1]]) * size / 2.0
         self.vertices = self.original_vertices    # eight vertices of the cube
 
-    def initialize_dynamics(self, direction, position=np.zeros(3), velocity=np.zeros(3)):
-        self.direction = direction  # theta for (x, y, z)
+    def initialize_dynamics(self, position=np.zeros(3), direction=np.zeros(3), velocity=np.zeros(3)):
         self.position = position    # [m]
+        self.direction = direction  # theta for (x, y, z)
         self.velocity = velocity    # [m/s]
         self.vertices = self.set_vertices()
 
