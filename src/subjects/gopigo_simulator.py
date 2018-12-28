@@ -11,11 +11,11 @@ class Gopigo(SubjectBase):
         self.action_list = ['forward', 'backward', 'stop']
         super(Gopigo, self).__init__(mass)
 
-    def forward(self, dt, v=np.array([1., 0., 0.])):
-        self.update_dynamics(dt, self.direction, v)
+    def forward(self, dt):
+        self.update_dynamics(dt, self.direction, self.velocity * np.array([1, 1, 0]))
 
-    def backward(self, dt, v=np.array([-1., 0., 0.])):
-        self.update_dynamics(dt, self.direction, v)
+    def backward(self, dt):
+        self.update_dynamics(dt, self.direction, self.velocity * np.array([-1, -1, 0]))
 
     def right(self):
         raise NotImplementedError
@@ -23,5 +23,5 @@ class Gopigo(SubjectBase):
     def left(self):
         raise NotImplementedError
 
-    def stop(self, dt, v=None):
+    def stop(self, dt):
         self.update_dynamics(dt, self.direction, np.array([0.0, 0.0, 0.0]))
