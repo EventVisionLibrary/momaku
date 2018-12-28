@@ -16,10 +16,11 @@ class ObjectBase(object):
         self.color = color          # [r, g, b]
         self.is_visible = True
 
-    def initialize_dynamics(self, position=np.zeros(3), velocity=np.zeros(3)):
-        self.position = np.array(position)    # [m]
-        self.velocity = np.array(velocity)    # [m/s**2]
+    def initialize_dynamics(self, position=np.zeros(3), velocity=np.zeros(3), *args, **kwargs):
+        self.position = position    # [m]
+        self.velocity = velocity    # [m/s]
 
-    def update_dynamics(self, new_position, new_velocity):
-        self.position = new_position
-        self.velocity = new_velocity
+    def update_dynamics(self, dt, new_velocity=None, *args, **kargs):
+        self.position = self.position + self.velocity * dt
+        if new_velocity is not None:
+            self.velocity = new_velocity

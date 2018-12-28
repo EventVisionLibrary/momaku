@@ -14,40 +14,44 @@ from subjects.gopigo_simulator import Gopigo
 COLLISION_THRESHOLD = 1.0
 
 class FallingStone():
-    def __init__(self):
+    def __init__(self, dt=1e-2, render_width=900, render_height=900):
         self.dt = 1e-2
-        _ = self.reset()
+        self.render_width = render_width
+        self.render_height = render_height
+        self.reset()
 
     def init_subject(self):
         # subject = SimpleWalker()
         subject = Gopigo()
-        subject.initialize_dynamics(position=np.array([-1, -1, -1], dtype=np.float32),
-                                    direction=np.array([3, 3, 3], dtype=np.float32),
+        subject.initialize_dynamics(position=np.array([-1, 0, 2], dtype=np.float32),
+                                    direction=np.array([1, 1, 1], dtype=np.float32),
                                     velocity=np.array([0.1, 0.1, 0.1], dtype=np.float32))
         return subject
 
     def init_objects(self):
         objects = []
         cube = SolidCube(size=2.0)
-        cube.initialize_dynamics(position=np.array([2, 4, 1]),
+        cube.initialize_dynamics(position=np.array([2, 0, 1]),
                                  direction=np.array([np.pi/4, np.pi/4, np.pi/4]),
-                                 velocity=np.array([0, 2, 0]))
+                                 velocity=np.array([0, 0, -1]))
         objects.append(cube)
         sphere = SolidSphere(radius=0.5)
-        sphere.initialize_dynamics(position=np.array([1, 1, 1]),
-                                 velocity=np.array([-1, -1, -1]))
+        sphere.initialize_dynamics(position=np.array([3, 0, 2]),
+                                   velocity=np.array([0, 0, -1]))
         objects.append(sphere)
         return objects
 
     def init_renderer(self):
         renderer = Renderer(camera_position=self.subject.position,
-                            target_position=self.subject.direction)
+                            target_position=self.subject.direction,
+                            width=self.render_width,
+                            height=self.render_height)
         return renderer
 
     def move_objects(self):
         for obj in self.objects:
-            obj.update_dynamics(dt=self.dt, new_velocity=np.array([0, 2, 0]), 
-                                angular_velocity=np.array([0, np.pi, 0]))
+            obj.update_dynamics(dt=self.dt, new_velocity=np.array([0, 0, -1]), 
+                                angular_velocity=np.array([np.pi, 0, 0]))
 
     def move_subject(self, action):
         getattr(self.subject, action)(self.dt)
@@ -63,7 +67,7 @@ class FallingStone():
             self.subject.position, self.subject.direction)
 
         # obs
-        self.current_image = self.renderer.render_objects(self.objects, False)
+        self.current_image = self.renderer.render_objects(self.objects, True)
         events = self.__calc_events()
         self.prev_image = self.current_image
 
@@ -84,8 +88,6 @@ class FallingStone():
         self.renderer = self.init_renderer()
         self.prev_image = np.zeros([self.renderer.display_height, self.renderer.display_width, 3])
         self.current_image = self.renderer.render_objects(self.objects)
-        events = self.__calc_events()
-        return events
 
     def render(self, mode='human'):
         # TODO: enable rendering for debug
@@ -134,23 +136,22 @@ class FallingStone():
         gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
         return gray
 
-def events_to_image(events):
-    H = 900
-    W = 900
-    image = np.zeros([H, W, 3])
+def events_to_image(events, width, height):
+    image = np.zeros([height, width, 3], dtype=np.uint8)
     for (t, y, x, p) in events:
         if p == 1:
-            image[y, x] = (255, 0, 0)
+            image[y, x, 0] = 255
         else:
-            image[y, x] = (0, 0, 255)
+            image[y, x, 2] = 255
     return image
 
 if __name__ == '__main__':
-    env = FallingStone()
+    w, h = 400, 400
+    env = FallingStone(render_width=w, render_height=h)
     start = time.time()
     N = 20
     for i in range(0, N):
         events, r, done, info = env.step(action='forward')
-        image = events_to_image(events)
+        image = events_to_image(events, w, h)
         cv2.imwrite("../fig/image" + str(i) + ".png", image)
     print("Average Elapsed Time: {} s".format((time.time() - start) / N))
