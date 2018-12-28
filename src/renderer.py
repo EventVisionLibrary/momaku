@@ -156,37 +156,20 @@ class Renderer():
         glBegin(GL_QUADS)
         glMaterialfv(GL_FRONT, GL_AMBIENT, [*cube.color, 1.0])
         vertices = cube.vertices
-        # 1
-        glVertex3f(*vertices[0])
-        glVertex3f(*vertices[1])
-        glVertex3f(*vertices[2])
-        glVertex3f(*vertices[3])
-        # 2
-        glVertex3f(*vertices[4])
-        glVertex3f(*vertices[5])
-        glVertex3f(*vertices[6])
-        glVertex3f(*vertices[7])
-        # 3
-        glVertex3f(*vertices[0])
-        glVertex3f(*vertices[1])
-        glVertex3f(*vertices[5])
-        glVertex3f(*vertices[4])
-        # 4
-        glVertex3f(*vertices[2])
-        glVertex3f(*vertices[3])
-        glVertex3f(*vertices[7])
-        glVertex3f(*vertices[6])
-        # 5
-        glVertex3f(*vertices[1])
-        glVertex3f(*vertices[2])
-        glVertex3f(*vertices[6])
-        glVertex3f(*vertices[5])
-        # 6
-        glVertex3f(*vertices[0])
-        glVertex3f(*vertices[3])
-        glVertex3f(*vertices[7])
-        glVertex3f(*vertices[4])
+        self.__draw_surface(vertices[4], vertices[5], vertices[6], vertices[7])
+        self.__draw_surface(vertices[0], vertices[1], vertices[2], vertices[3])
+        self.__draw_surface(vertices[0], vertices[1], vertices[5], vertices[4])
+        self.__draw_surface(vertices[2], vertices[3], vertices[7], vertices[6])
+        self.__draw_surface(vertices[1], vertices[2], vertices[6], vertices[5])
+        self.__draw_surface(vertices[0], vertices[3], vertices[7], vertices[4])
         glEnd()
+
+    def __draw_surface(self, v1, v2, v3, v4):
+        glVertex3f(*v1)
+        glVertex3f(*v2)
+        glVertex3f(*v3)
+        glVertex3f(*v4)
+
 
     def render_objects(self, objects, show_axis=False):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -214,22 +197,27 @@ class Renderer():
 if __name__ == "__main__":
     camera_position = [-1, -3, -1]
     target_position = [3, 3, 3]
-    renderer = Renderer(camera_position=camera_position, target_position=target_position)
+    renderer = Renderer(camera_position=camera_position, target_position=target_position,
+                        width=400, height=400)
 
     # objects
     cube = SolidCube(size=1.0, color=np.array([0.5, 0.5, 0.0]))
-    cube.vertices = np.array([[2, 2, 0], [2, 2, 2], [2, 6, 2], [2, 6, 0],
-                              [4, 2, 0], [4, 2, 2], [4, 6, 2], [4, 6, 0]], dtype=np.float64)
+    cube.initialize_dynamics(position=np.array([3, 4, -1]), 
+        direction=np.ones(3),
+        velocity=np.array([0, 2, 0]))
     sphere = SolidSphere(radius=0.5, color=np.array([0.5, 0.0, 0.5]))
-    sphere.position = np.array([0.0, 1.0, 0.5])
+    # sphere.position = np.array([0.0, 1.0, 0.5])
+    sphere.initialize_dynamics(position=np.array([0, 0, 0.]))
 
     start = time.time()
     N = 20
     for i in range(0, N):
-        cube.vertices[:, 1] += 0.2
+        cube.update_dynamics(0.1)
         sphere.position += np.array([0.0, 0.1, 0.0])
         camera_position[0] -= 0.05
         camera_position[1] -= 0.05
+        target_position[0] -= 0.05
+        target_position[1] -= 0.05
         renderer.update_perspective(camera_position, target_position)
         image = renderer.render_objects([cube, sphere], show_axis=True)
         cv2.imwrite("../fig/image" + str(i) + ".png", image)
