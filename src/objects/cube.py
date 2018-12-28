@@ -10,26 +10,25 @@ class SolidCube(ObjectBase):
     def __init__(self, size, mass=1.0, color=np.zeros(3)):
         super(SolidCube, self).__init__(mass, color)
         self.size = size
-        self.translation = np.array([[-1, -1, 1],
-                                     [-1, 1, 1],
-                                     [1, 1, 1],
-                                     [1, -1, 1],
-                                     [-1, -1, -1],
-                                     [-1, 1, -1],
-                                     [1, 1, -1],
-                                     [1, -1, -1]]) * size / 2.0
-        self.direction_update = False
-        self.vertices = np.zeros((8, 3))     # eight vertices of the cube
+        self.original_vertices = np.array([[-1, -1, 1],
+                                           [-1, 1, 1],
+                                           [1, 1, 1],
+                                           [1, -1, 1],
+                                           [-1, -1, -1],
+                                           [-1, 1, -1],
+                                           [1, 1, -1],
+                                           [1, -1, -1]]) * size / 2.0
+        self.vertices = self.original_vertices    # eight vertices of the cube
 
     def initialize_dynamics(self, direction, position=np.zeros(3), velocity=np.zeros(3)):
         self.direction = direction  # theta for (x, y, z)
         self.position = position    # [m]
         self.velocity = velocity    # [m/s]
-        self.set_vertices()
+        self.vertices = self.set_vertices()
 
     def set_vertices(self):
-        translated_vertices = self.position + self.translation
-        self.vertices = translated_vertices.dot(self.get_rotation_matrix(self.direction))
+        rotated_vertices = self.original_vertices.dot(self.get_rotation_matrix(self.direction))
+        return self.position + rotated_vertices
 
     def get_rotation_matrix(self, theta):
         # rotate from x > y > z axis
@@ -44,8 +43,12 @@ class SolidCube(ObjectBase):
                        [0, 0, 1]])
         return rz.dot(ry).dot(rx)
 
-    def update_dynamics(self, new_velocity, dt):
+    def update_dynamics(self, dt, new_velocity=None, angular_velocity=None):
         self.position = self.position + self.velocity * dt
+        if angular_velocity is None:
+            self.vertices = self.vertices + self.velocity * dt
+        else:
+            self.direction += angular_velocity * dt
+            self.vertices = self.set_vertices()
         if new_velocity is not None:
             self.velocity = new_velocity
-        self.vertices = self.vertices + self.velocity * dt

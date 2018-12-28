@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
+# Copyright 2018 Event Vision Library.
+
 import numpy as np
-cimport numpy as np
-cimport cython
-ctypedef np.float64_t DOUBLT_t
 from scipy import interpolate
 
+from subjects import SubjectBase
+
 """
-外部の定数
+External constants
 """
+
 c_d = 0.4               # 空気抵抗係数
 wind_velocity = np.zeros(3)     # 風の向きベクトル [m/s]
 temparature = 25        # 気温 [℃]
@@ -18,7 +20,6 @@ mu_r = 0.1              # 路面の転がり抵抗係数
 vec_r = np.array([0.0, 0.0, 1.0])   # 路面の法線ベクトル
 g = 9.8                 # 重力加速度 [m/s2]
 mu_s = 0.7              # スキッド限界の定数
-
 
 Weight = 1500.0        # 質量 [kg]
 Wheelbase = 2.5        # ホイールベース [m]
@@ -36,6 +37,11 @@ class Car(object):
     see http://dskjal.com/programming/car-physics-for-simulator.html
     """
     def __init__(self, position=np.zeros(3), velocity=np.zeros(3), dir_front=0.0):
+
+    def __init__(self, mass=1.0):
+        self.action_list = ['upward', 'downward', 'rotate', 'stop']
+        super(SimpleWalker, self).__init__(mass)
+
         """ 車オブジェクトの定数 """
         self.l_r = np.float32(1.5)              # 重心から後輪までの長さ [m]
         self.height = np.float32(1.5)           # 高さ [m]
@@ -49,7 +55,6 @@ class Car(object):
 
         """計算のスピードアップのために先に計算しておく定数"""
         self.A = self.tradwidth * self.height
-
 
         """ 車オブジェクトの状態変数 """
         self.pitch_rotate = np.float32(0.0)     # 前後方向の車体の傾き
