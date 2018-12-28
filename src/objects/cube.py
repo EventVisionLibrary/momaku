@@ -1,6 +1,7 @@
+# Copyright 2018 Event Vision Library.
+
 import numpy as np
 from objects import ObjectBase
-
 
 class SolidCube(ObjectBase):
     """
@@ -10,14 +11,14 @@ class SolidCube(ObjectBase):
         super(SolidCube, self).__init__(mass, color)
         self.size = size
 
-    def initializeDynamics(self, direction, position=np.zeros(3), velocity=np.zeros(3)):
+    def initialize_dynamics(self, direction, position=np.zeros(3), velocity=np.zeros(3)):
         self.direction = direction
-        self.vertices = self.calcVertices()
         self.position = position    # [m]
-        self.velocity = velocity    # [m/s**2]
+        self.velocity = velocity    # [m/s]
+        self.vertices = self.calcVertices()
 
-    def calcVertices(self):
+    def calc_vertices(self):
         raise NotImplementedError
 
-    def updateDynamics(self, new_direction, new_poisition, new_velocity):
+    def update_dynamics(self, new_direction, new_poisition, new_velocity):
         raise NotImplementedError

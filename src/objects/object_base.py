@@ -1,5 +1,6 @@
-import numpy as np
+# Copyright 2018 Event Vision Library.
 
+import numpy as np
 
 class ObjectBase(object):
     """
@@ -15,10 +16,10 @@ class ObjectBase(object):
         self.color = color          # [r, g, b]
         self.is_visible = True
 
-    def initializeDynamics(self, position=np.zeros(3), velocity=np.zeros(3)):
+    def initialize_dynamics(self, position=np.zeros(3), velocity=np.zeros(3)):
         self.position = np.array(position)    # [m]
         self.velocity = np.array(velocity)    # [m/s**2]
 
-    def updateDynamics(self, new_position, new_velocity):
+    def update_dynamics(self, new_position, new_velocity):
         self.position = new_position
         self.velocity = new_velocity
