@@ -15,7 +15,7 @@ class Gopigo(SubjectBase):
         new_position = self.position + dt * self.velocity
         self.update_dynamics(v, new_position, v)
 
-    def go(self, dt, v=np.array([-1., 0., 0.])):
+    def back(self, dt, v=np.array([-1., 0., 0.])):
         new_position = self.position + dt * self.velocity
         self.update_dynamics(v, new_position, v)
 

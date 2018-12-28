@@ -23,7 +23,7 @@ class FallingStone():
         subject.initialize_dynamics(
                     position = np.array([-1, -1, -1], dtype=np.float32),
                     direction = np.array([3, 3, 3], dtype=np.float32),
-                    velocity = np.array([0.01, 0.01, 0.01], dtype=np.float32)
+                    velocity = np.array([0.1, 0.1, 0.1], dtype=np.float32)
         )
         return subject
 
@@ -48,7 +48,7 @@ class FallingStone():
 
     def move_subject(self, action):
         # self.subject.position += self.subject.velocity
-        getattr(self.subject, action)
+        getattr(self.subject, action)(0.05)
 
     def step(self, action):
         self.timestamp += self.time_delta
@@ -57,7 +57,7 @@ class FallingStone():
         self.renderer.update_perspective(self.subject.position, self.subject.direction)
 
         # obs
-        self.current_image = self.renderer.render_objects(self.objects)
+        self.current_image = self.renderer.render_objects(self.objects, True)
         events = self.__calc_events()
         self.prev_image = self.current_image
 
@@ -118,7 +118,7 @@ if __name__ == '__main__':
     start = time.time()
     N = 20
     for i in range(0, N):
-        events, r, done, info = env.step(action='go')
+        events, r, done, info = env.step(action='back')
         image = events_to_image(events)
         cv2.imwrite("../fig/image" + str(i) + ".png", image)
     print("Average Elapsed Time: {} s".format((time.time() - start) / N))
