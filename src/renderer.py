@@ -5,7 +5,6 @@ import time
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
-from OpenGL.GLUT import *
 import glfw
 
 from objects.cube import SolidCube
@@ -16,6 +15,11 @@ ambient = [0.25, 0.25, 0.25]
 diffuse = [1.0, 0.0, 0.0]
 specular = [1.0, 1.0, 1.0]
 shininess = 32.0
+
+# color (RGBA)
+red = [1.0, 0.0, 0.0, 1.0]
+green = [0.0, 1.0, 0.0, 1.0]
+blue = [0.0, 0.0, 1.0, 1.0]
 
 class Renderer():
     def __init__(self, camera_position, target_position):
@@ -72,6 +76,46 @@ class Renderer():
         self.target_position = new_target_position
         self.setup_perspective()
 
+    def __draw_axis(self):
+        glLineWidth(3.0)
+        glBegin(GL_LINES)
+        length = 20.0
+        # x
+        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, [1.0, 0.0, 0.0, 1.0])
+        glVertex3f(length, 0.0, 0.0)
+        glVertex3f(-length, 0.0, 0.0)
+
+        # y
+        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, [0.0, 1.0, 0.0, 1.0])
+        glVertex3f(0.0, length, 0.0)
+        glVertex3f(0.0, -length, 0.0)
+
+        # z
+        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, [0.0, 0.0, 1.0, 1.0])
+        glVertex3f(0.0, 0.0, length)
+        glVertex3f(0.0, 0.0, -length)
+
+        glEnd()
+
+    def __draw_plane(self):
+        x_size = 10.0
+        y_size = 10.0
+        x_num = 60
+        y_num = 60
+        glLineWidth(1.0)
+        glBegin(GL_LINES)
+        # y direction
+        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, [0.0, 1.0, 0.0, 0.5])
+        for x in np.linspace(-x_size, x_size, x_num):
+            glVertex3f(x, -y_size, 0.0)
+            glVertex3f(x, +y_size, 0.0)
+        # x direction
+        glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, [1.0, 0.0, 0.0, 0.5])
+        for y in np.linspace(-y_size, y_size, y_num):
+            glVertex3f(-x_size, y, 0.0)
+            glVertex3f(+x_size, y, 0.0)
+        glEnd()
+
     def __draw_sphere(self, sphere):
         # divide into triangles
         def f(u, v):
@@ -95,14 +139,14 @@ class Renderer():
                 p3 = f(u_next, v_next)
                 # 1
                 glBegin(GL_TRIANGLES)
-                glColor3f(*sphere.color)
+                glMaterialfv(GL_FRONT, GL_AMBIENT, [*sphere.color, 1.0])
                 glVertex3f(*p0)
                 glVertex3f(*p2)
                 glVertex3f(*p1)
                 glEnd()
                 # 2
                 glBegin(GL_TRIANGLES)
-                glColor3f(*sphere.color)
+                glMaterialfv(GL_FRONT, GL_AMBIENT, [*sphere.color, 1.0])
                 glVertex3f(*p3)
                 glVertex3f(*p1)
                 glVertex3f(*p2)
@@ -110,7 +154,7 @@ class Renderer():
 
     def __draw_cube(self, cube):
         glBegin(GL_QUADS)
-        glColor3f(*cube.color)
+        glMaterialfv(GL_FRONT, GL_AMBIENT, [*cube.color, 1.0])
         vertices = cube.vertices
         # 1
         glVertex3f(*vertices[0])
@@ -144,45 +188,49 @@ class Renderer():
         glVertex3f(*vertices[4])
         glEnd()
 
-    def render_objects(self, objects):
+    def render_objects(self, objects, show_axis=False):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        glMaterialfv(GL_FRONT, GL_AMBIENT, ambient)
-        glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse)
-        glMaterialfv(GL_FRONT, GL_SPECULAR, specular)
-        glMaterialfv(GL_FRONT, GL_SHININESS, shininess)
+        # axis and plane
+        if show_axis:
+            self.__draw_axis()
+            self.__draw_plane()
 
-
+        # objects
+        # glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse)
+        # glMaterialfv(GL_FRONT, GL_SPECULAR, specular)
+        # glMaterialfv(GL_FRONT, GL_SHININESS, shininess)
         for obj in objects:
             if isinstance(obj, SolidCube):
                 self.__draw_cube(obj)
             elif isinstance(obj, SolidSphere):
                 self.__draw_sphere(obj)
 
-        image_buffer = glReadPixels(0, 0, self.display_width, self.display_height, OpenGL.GL.GL_RGB, OpenGL.GL.GL_UNSIGNED_BYTE)
+        image_buffer = glReadPixels(0, 0, self.display_width, self.display_height,
+                                    OpenGL.GL.GL_RGB, OpenGL.GL.GL_UNSIGNED_BYTE)
         image = np.frombuffer(image_buffer, dtype=np.uint8).reshape(self.display_width, self.display_height, 3)
         return image
 
 if __name__ == "__main__":
-    camera_position = [-1, -1, -1]
+    camera_position = [-1, -3, -1]
     target_position = [3, 3, 3]
     renderer = Renderer(camera_position=camera_position, target_position=target_position)
 
     # objects
-    cube = SolidCube(size=1.0)
+    cube = SolidCube(size=1.0, color=np.array([0.5, 0.5, 0.0]))
     cube.vertices = np.array([[2, 2, 0], [2, 2, 2], [2, 6, 2], [2, 6, 0],
                               [4, 2, 0], [4, 2, 2], [4, 6, 2], [4, 6, 0]], dtype=np.float64)
-    sphere = SolidSphere(radius=0.5)
-    sphere.position = np.array([0, 0, 0])
+    sphere = SolidSphere(radius=0.5, color=np.array([0.5, 0.0, 0.5]))
+    sphere.position = np.array([0.0, 1.0, 0.5])
 
     start = time.time()
     N = 20
     for i in range(0, N):
         cube.vertices[:, 1] += 0.2
-        sphere.position[2] += 0.1
-        camera_position[0] -= 0.1
-        camera_position[1] -= 0.1
+        sphere.position += np.array([0.0, 0.1, 0.0])
+        camera_position[0] -= 0.05
+        camera_position[1] -= 0.05
         renderer.update_perspective(camera_position, target_position)
-        image = renderer.render_objects([cube, sphere])
+        image = renderer.render_objects([cube, sphere], show_axis=True)
         cv2.imwrite("../fig/image" + str(i) + ".png", image)
     print("Average Elapsed Time: {} s".format((time.time()-start)/N))
