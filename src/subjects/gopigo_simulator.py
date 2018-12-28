@@ -12,10 +12,10 @@ class Gopigo(SubjectBase):
         super(Gopigo, self).__init__(mass)
 
     def forward(self, dt, v=np.array([1., 0., 0.])):
-        self.update_dynamics(dt, v, v)
+        self.update_dynamics(dt, self.direction, v)
 
     def backward(self, dt, v=np.array([-1., 0., 0.])):
-        self.update_dynamics(dt, v, v)
+        self.update_dynamics(dt, self.direction, v)
 
     def right(self):
         raise NotImplementedError
