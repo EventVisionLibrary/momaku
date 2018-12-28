@@ -22,9 +22,9 @@ green = [0.0, 1.0, 0.0, 1.0]
 blue = [0.0, 0.0, 1.0, 1.0]
 
 class Renderer():
-    def __init__(self, camera_position, target_position):
-        self.display_width = 900
-        self.display_height = 900
+    def __init__(self, camera_position, target_position, width, height):
+        self.display_width = width
+        self.display_height = height
 
         self.light_ambient = [0.25, 0.25, 0.25]
         self.light_position = [10, 5, 0, 2]
