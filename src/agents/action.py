@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 def select_softmax(pipeline, output):
     """
@@ -16,7 +17,7 @@ def select_softmax(pipeline, output):
     _sum = torch.sum(torch.exp(spikes.float()))
 
     if _sum == 0:
-        action = np.random.choice(pipeline.env.action_space.n)
+        action = np.random.choice(len(pipeline.env.subject.action_list))
     else:
         action = torch.multinomial((torch.exp(spikes.float()) / _sum).view(-1), 1)[0]
 

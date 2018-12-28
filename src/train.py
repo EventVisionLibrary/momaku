@@ -29,6 +29,8 @@ def main():
         reward = 0
         # pipeline.reset_() # including bug
         pipeline.step()
+        
+        # [Future work] after env.done is defined, this part should be implemented!
         #while True:
         #    pipeline.step()
         #    reward += pipeline.reward

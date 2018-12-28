@@ -3,6 +3,7 @@ import cv2
 import torch
 
 from bindsnet.network.nodes import Input, AbstractInput
+from bindsnet.network.monitors import Monitor
 
 from env import events_to_image
 
@@ -18,8 +19,11 @@ class Pipeline(object):
         self.print_interval = 1
         self.save_interval = 1
         self.save_dir = 'network.pt'
+        self.plot_length = 1.0
+        self.plot_interval = 1
+        self.history_length = 1
 
-        self.time = 1
+        self.time = 100
         self.dt = network.dt
         self.timestep = int(self.time / self.dt)
 
@@ -32,6 +36,16 @@ class Pipeline(object):
         self.obs = None
         self.reward = None
         self.done = None
+
+        # add monitor into network
+        for l in self.network.layers:
+            self.network.add_monitor(Monitor(self.network.layers[l], 's', int(self.plot_length * self.plot_interval * self.timestep)),
+                                        name='{:}_spikes'.format(l))
+            if 'v' in self.network.layers[l].__dict__:
+                self.network.add_monitor(Monitor(self.network.layers[l], 'v', int(self.plot_length * self.plot_interval * self.timestep)),
+                                            name='{:}_voltages'.format(l))
+        self.spike_record = {l: torch.Tensor().byte() for l in self.network.layers}
+        self.set_spike_data()
 
         # Set up for multiple layers of input layers.
         self.encoded = {
@@ -53,10 +67,13 @@ class Pipeline(object):
         #    self.network.save(self.save_dir)
 
         # Choose action based on output neuron spiking.
-        #a = self.action_function(self, output=self.output)
-        
+        # need inserting to spike_record
+        a = self.action_function(self, output=self.output)
+        # convert number into action_name
+        action_name = self.env.subject.action_list[a]
+
         # Run a step of the environment.
-        events, self.reward, self.done, info = self.env.step(action='forward')
+        events, self.reward, self.done, info = self.env.step(action=action_name)
         # currently image-based learning is adopted (Future work : spike-based)
         events_img = events_to_image(events, self.env.render_width, self.env.render_height)
         self.obs = torch.from_numpy(cv2.cvtColor(events_img, cv2.COLOR_BGR2GRAY)).float()/255.0
@@ -67,6 +84,7 @@ class Pipeline(object):
 
         # Run the network on the spike train-encoded inputs.
         self.network.run(inpts=self.encoded, time=self.time, reward=self.reward)
+        self.set_spike_data() # insert into spike_record
 
         self.iteration += 1
 
@@ -74,6 +92,13 @@ class Pipeline(object):
             self.iteration = 0
             self.episode += 1
             self.accumulated_reward = 0
+
+    def set_spike_data(self):
+        """
+        Get the spike data from all layers in the pipeline's network.
+        """
+        self.spike_record = {l: self.network.monitors['{:}_spikes'.format(l)].get('s') for l in self.network.layers}
+
 
     def reset_(self):
         """

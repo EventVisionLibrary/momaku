@@ -6,13 +6,13 @@ from bindsnet.network.topology import Connection
 IMG_WIDTH=80
 IMG_HEIGHT=80
 
-def create_network():
+def create_network(action_num=3):
     network = Network(dt=1.0)
 
     # Layers of neurons.
     inpt = Input(n=IMG_HEIGHT*IMG_WIDTH, shape=[IMG_HEIGHT, IMG_WIDTH], traces=True)
     middle = LIFNodes(n=100, traces=True)
-    out = LIFNodes(n=4, refrac=0, traces=True)
+    out = LIFNodes(n=action_num, refrac=0, traces=True)
 
     # Connections between layers.
     inpt_middle = Connection(source=inpt, target=middle, wmin=0, wmax=1e-1)

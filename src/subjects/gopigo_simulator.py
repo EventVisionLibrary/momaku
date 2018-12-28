@@ -23,5 +23,5 @@ class Gopigo(SubjectBase):
     def left(self):
         raise NotImplementedError
 
-    def stop(self):
+    def stop(self, dt, v=None):
         self.update_dynamics(dt, self.direction, np.array([0.0, 0.0, 0.0]))
