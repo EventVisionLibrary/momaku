@@ -1,6 +1,7 @@
+# Copyright 2018 Event Vision Library.
+
 import numpy as np
 from objects import ObjectBase
-
 
 class Field(ObjectBase):
     """
@@ -11,18 +12,18 @@ class Field(ObjectBase):
         self.vertices = np.zeros((4, 3))
         self.size = size
 
-    def initializeDynamics(self, position=np.zeros(3), *args, **kargs):
+    def initialize_dynamics(self, position=np.zeros(3), *args, **kargs):
         self.position = position    # [m]
         self.setVertices()
 
-    def setVertices(self):
+    def set_vertices(self):
         self.vertices[:, :2] = np.array([[self.size, self.size],
                                          [self.size, -self.size], 
                                          [-self.size, -self.size],
                                          [-self.size, self.size]])
         self.vertices[:, 2] = self.position[2]
 
-    def updateDynamics(self, *args, **kargs):
+    def update_dynamics(self, *args, **kargs):
         pass
 
 
@@ -34,5 +35,5 @@ class TextureField(Field):
         super(TextureField, self).__init__(np.array([0., 0., 0.]), size)
         self.texture = self.setTexture()
 
-    def setTexture(self):
+    def set_texture(self):
         raise NotImplementedError
