@@ -47,6 +47,7 @@ class Pipeline(object):
         self.obs = None
         self.reward = None
         self.done = None
+        self.action_name = None
 
         # add monitor into network
         for l in self.network.layers:
@@ -81,10 +82,10 @@ class Pipeline(object):
         # need inserting to spike_record
         a = self.action_function(self, output=self.output)
         # convert number into action_name
-        action_name = self.env.subject.action_list[a]
+        self.action_name = self.env.subject.action_list[a]
 
         # Run a step of the environment.
-        events, self.reward, self.done, info = self.env.step(action=action_name)
+        events, self.reward, self.done, info = self.env.step(action=self.action_name)
 
         # reward accumulation
         self.accumulated_reward += self.reward

@@ -76,13 +76,21 @@ class FallingStone():
         events = self.__calc_events()
         self.prev_intensity = self.current_intensity
 
+        # default reward (relative position to sphere)
         if self.__is_collision():
-            r = -1.0
+            r = -10.0
             self.done = True
         else:
-            r = 0.1
+            # extract solidsphere
+            for obj in self.objects:
+                if isinstance(obj, SolidSphere):
+                    r = self.__measure_distance(obj)*(-1.0)/10.0
             self.done = False
-        
+
+        # more forward, more reward
+        if action == "forward":
+            r += 0.5
+
         # add done judgement from timestamp
         if self.timestamp > 1.0:
             self.done = True
@@ -115,9 +123,12 @@ class FallingStone():
                     return True
         return False
 
+    def __measure_distance(self, sphere):
+        return np.sum((sphere.position - self.subject.position)**2)
+
     def __check_sphere_collision(self, sphere):
         d = np.sum((sphere.position - self.subject.position)**2)
-        print("distance: ", np.sqrt(d))
+        #print("distance: ", np.sqrt(d))
         if d < (COLLISION_THRESHOLD+sphere.radius)**2:
             return True
         else:
