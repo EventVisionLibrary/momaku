@@ -29,15 +29,12 @@ def main():
     for i in range(100):
         # initialize episode reward
         reward = 0
-        # pipeline.reset_() # including bug
-        pipeline.step()
-        
-        # [Future work] after env.done is defined, this part should be implemented!
-        #while True:
-        #    pipeline.step()
-        #    reward += pipeline.reward
-        #    if pipeline.done:
-        #        break
+        #pipeline.reset_() # including bug
+        while True:
+            pipeline.step()
+            reward += pipeline.reward
+            if pipeline.done:
+                break
         print("Episode " + str(i) + " reward:", reward)
 
 
