@@ -24,7 +24,7 @@ def main():
 
     # Run environment simulation for 100 episodes.
     #pipeline.reset_()
-    for i in range(10):
+    for i in range(100):
         # initialize episode reward
         reward = 0
         # pipeline.reset_() # including bug
