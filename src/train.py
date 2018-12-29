@@ -11,10 +11,11 @@ def main():
     w, h = 80, 80
 
     # Build network
-    network = create_network(network='bindsnet', input_width=w, input_height=h, action_num=2)
+    network = create_network(action_num=2)
 
     # Load environment
     environment = FallingStone(render_width=w, render_height=h)
+    environment.subject.action_list = ['forward', 'stop'] # experimentally remove 'backward' action
 
     # Build pipeline from specified components.
     pipeline = Pipeline(network, environment, encoding='bernoulli',
@@ -22,18 +23,17 @@ def main():
 
     # Run environment simulation for 100 episodes.
     #pipeline.reset_()
-    for i in range(10):
+    for i in range(1000):
         # initialize episode reward
         reward = 0
-        # pipeline.reset_() # including bug
-        pipeline.step()
-        
-        # [Future work] after env.done is defined, this part should be implemented!
-        #while True:
-        #    pipeline.step()
-        #    reward += pipeline.reward
-        #    if pipeline.done:
-        #        break
+        while True:
+            pipeline.step()
+            reward += pipeline.reward
+            print(reward, pipeline.action_name)
+            if pipeline.done:
+                pipeline.reset_()
+                environment.subject.action_list = ['forward', 'stop']
+                break
         print("Episode " + str(i) + " reward:", reward)
 
 
