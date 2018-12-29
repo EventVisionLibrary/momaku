@@ -105,7 +105,6 @@ class Pipeline(object):
         if self.iteration % self.plot_interval == 0:
             self.plot_data()
             self.plot_obs()
-            self.plot_reward()
 
         self.iteration += 1
 
