@@ -15,7 +15,6 @@ class Gopigo(SubjectBase):
         self.update_dynamics(dt, self.direction, self.velocity * np.array([1, 1, 0]))
 
     def backward(self, dt):
-        print(self.velocity)
         if self.velocity[0] > 0:
             self.update_dynamics(dt, self.direction,
                                  self.velocity * np.array([-1, -1, 0]))
