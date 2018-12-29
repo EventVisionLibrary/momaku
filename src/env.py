@@ -82,6 +82,11 @@ class FallingStone():
         else:
             r = 0.1
             self.done = False
+        
+        # add done judgement from timestamp
+        if self.timestamp > 1.0:
+            self.done = True
+
         info = {}
         return events, r, self.done, info
 
