@@ -1,16 +1,18 @@
-from bindsnet.network import Network
-from bindsnet.learning import MSTDP
-from bindsnet.network.nodes import Input, LIFNodes
-from bindsnet.network.topology import Connection
+# Copyright 2018 Event Vision Library.
 
-IMG_WIDTH=80
-IMG_HEIGHT=80
+def create_network(network='bindsnet', input_width=80, input_height=80, action_num=3):
+    if network == 'bindsnet':
+        return create_bindsnet(input_width, input_height, action_num)
 
-def create_network(action_num=3):
+def create_bindsnet(input_width, input_height, action_num=3):
+    from bindsnet.network import Network
+    from bindsnet.learning import MSTDP
+    from bindsnet.network.nodes import Input, LIFNodes
+    from bindsnet.network.topology import Connection
+
     network = Network(dt=1.0)
-
     # Layers of neurons.
-    inpt = Input(n=IMG_HEIGHT*IMG_WIDTH, shape=[IMG_HEIGHT, IMG_WIDTH], traces=True)
+    inpt = Input(n=input_height * input_width, shape=[input_height, input_width], traces=True)
     middle = LIFNodes(n=100, traces=True)
     out = LIFNodes(n=action_num, refrac=0, traces=True)
 
