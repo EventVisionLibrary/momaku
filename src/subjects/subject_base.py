@@ -21,6 +21,7 @@ class SubjectBase(ObjectBase):
         self.position = position    # [x, y, z] [m] at time _t_
         self.direction = direction  # [x, y, z] [m] at time _t_
         self.velocity = velocity    # [x, y, z] [m/s] at time _t_
+        self.initial_velocity = velocity
 
     def update_dynamics(self, dt, new_direction, new_velocity):
         self.position += dt * self.velocity

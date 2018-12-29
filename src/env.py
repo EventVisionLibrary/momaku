@@ -166,8 +166,9 @@ if __name__ == '__main__':
     executed_times = []
     for i in range(0, N):
         start = time.time()
+        action = np.random.choice(env.subject.action_list)
         try:
-            events, r, done, info = env.step(action='backward')
+            events, r, done, info = env.step(action=action)
         except Exception as inst:
             print(inst)
             break
