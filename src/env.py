@@ -15,7 +15,7 @@ COLLISION_THRESHOLD = 1.0
 
 class FallingStone():
     def __init__(self, dt=1e-2, render_width=900, render_height=900):
-        self.dt = 0.03
+        self.dt = 0.01
         self.render_width = render_width
         self.render_height = render_height
         self.reset()
@@ -151,7 +151,7 @@ if __name__ == '__main__':
     for i in range(0, N):
         start = time.time()
         try:
-            events, r, done, info = env.step(action='forward')
+            events, r, done, info = env.step(action='backward')
         except Exception as inst:
             print(inst)
             break
