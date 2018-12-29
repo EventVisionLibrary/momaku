@@ -1,9 +1,12 @@
+# Copyright 2018 Event Vision Library.
+
 import time
 import cv2
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
+from bindsnet.encoding import bernoulli
 from bindsnet.network.nodes import Input, AbstractInput
 from bindsnet.network.monitors import Monitor
 from bindsnet.analysis.plotting import plot_spikes, plot_voltages
@@ -14,7 +17,8 @@ class Pipeline(object):
     def __init__(self, network, environment, encoding, action_function, output):
         self.network = network
         self.env = environment
-        self.encoding = encoding
+        if encoding == 'bernoulli':
+            self.encoding = bernoulli
         self.action_function = action_function
         self.output = output
         

@@ -167,7 +167,7 @@ if __name__ == '__main__':
     for i in range(0, N):
         start = time.time()
         try:
-            events, r, done, info = env.step(action='forward')
+            events, r, done, info = env.step(action='backward')
         except Exception as inst:
             print(inst)
             break

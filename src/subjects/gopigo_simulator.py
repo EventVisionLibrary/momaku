@@ -15,7 +15,12 @@ class Gopigo(SubjectBase):
         self.update_dynamics(dt, self.direction, self.velocity * np.array([1, 1, 0]))
 
     def backward(self, dt):
-        self.update_dynamics(dt, self.direction, self.velocity * np.array([-1, -1, 0]))
+        if self.velocity[0] > 0:
+            self.update_dynamics(dt, self.direction,
+                                 self.velocity * np.array([-1, -1, 0]))
+        else:
+            self.update_dynamics(dt, self.direction,
+                                self.velocity * np.array([1, 1, 0]))
 
     def right(self):
         raise NotImplementedError

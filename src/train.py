@@ -1,12 +1,10 @@
+# Copyright 2018 Event Vision Library.
+
 import time
 import cv2
 
-# bindsnet
-from bindsnet.encoding import bernoulli
-
 from agents import create_network, Pipeline, select_softmax
 from env import FallingStone, events_to_image
-
 
 def main():
     # display size
@@ -20,7 +18,7 @@ def main():
     environment.subject.action_list = ['forward', 'stop'] # experimentally remove 'backward' action
 
     # Build pipeline from specified components.
-    pipeline = Pipeline(network, environment, encoding=bernoulli,
+    pipeline = Pipeline(network, environment, encoding='bernoulli',
                         action_function=select_softmax, output='Output Layer')
 
     # Run environment simulation for 100 episodes.
