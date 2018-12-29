@@ -41,6 +41,7 @@ class Pipeline(object):
         self.plot_type = "color"
         self.s_ims, self.s_axes = None, None
         self.v_ims, self.v_axes = None, None
+        self.obs_im, self.obs_ax = None, None
         self.reward_im, self.reward_ax = None, None
         
         self.obs = None
@@ -103,6 +104,8 @@ class Pipeline(object):
         # Plot relevant data.
         if self.iteration % self.plot_interval == 0:
             self.plot_data()
+            self.plot_obs()
+            self.plot_reward()
 
         self.iteration += 1
 
@@ -112,6 +115,19 @@ class Pipeline(object):
             self.reward_list.append(self.accumulated_reward)
             self.accumulated_reward = 0
             self.plot_reward()
+
+    def plot_obs(self):
+        """
+        Plot the processed observation after difference against history
+        """
+        if self.obs_im is None and self.obs_ax is None:
+            fig, self.obs_ax = plt.subplots()
+            self.obs_ax.set_title('Observation')
+            self.obs_ax.set_xticks(())
+            self.obs_ax.set_yticks(())
+            self.obs_im = self.obs_ax.imshow(self.obs, cmap='gray')
+        else:
+            self.obs_im.set_data(self.obs)
 
     def plot_reward(self):
         """

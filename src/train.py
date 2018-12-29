@@ -13,10 +13,12 @@ def main():
     w, h = 80, 80
 
     # Build network
-    network = create_network()
+    network = create_network(action_num=2)
 
     # Load environment
     environment = FallingStone(render_width=w, render_height=h)
+    environment.subject.action_list = ['forward', 'stop'] # experimentally remove 'backward' action
+
 
     # Build pipeline from specified components.
     pipeline = Pipeline(network, environment, encoding=bernoulli,
