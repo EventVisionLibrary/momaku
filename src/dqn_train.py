@@ -1,6 +1,6 @@
-
-
+import cv2
 import numpy as np
+import pickle
 
 
 import chainer
@@ -49,7 +49,7 @@ def main():
     optimizer.setup(q_func)
     gamma = 0.95
     explorer = chainerrl.explorers.ConstantEpsilonGreedy(
-        epsilon=0.3, random_action_func=sampling_func)
+        epsilon=0.1, random_action_func=sampling_func)
     replay_buffer = chainerrl.replay_buffer.ReplayBuffer(capacity=10 ** 6)
     phi = lambda x: x.astype(np.float32, copy=False)
 
@@ -59,8 +59,9 @@ def main():
         replay_start_size=100, update_interval=1,
         target_update_interval=50, phi=phi)
 
-    n_episodes = 100
+    n_episodes = 30
     max_episode_len = 34 # 30 fps, 1 s
+    R_list = []
     for i in range(1, n_episodes + 1):
         obs, _, _, _ = env.reset()
         reward = 0
@@ -70,12 +71,21 @@ def main():
         while not done and t < max_episode_len:
             action_index = agent.act_and_train(obs, reward)
             action = env.subject.action_list[action_index]
+            print("time: {}, action: {}".format(t, action))
+            cv2.imshow('image', obs)
+            cv2.waitKey(10)
             obs, reward, done, _ = env.step(action)
             R += reward
             t += 1
         if i % 1 == 0:
             print('episode:', i, 'R:', R, 'statistics:', agent.get_statistics())
         agent.stop_episode_and_train(obs, reward, done)
+        R_list.append(R)
+
+    with open("../result/dqn/model.pickle", "wb") as f:
+        pickle.dump(agent, f)
+    with open("../result/dqn/reward.pickel", "wb") as f:
+        pickle.dump(R_list, f)
     print('Finished.')
 
 if __name__ == '__main__':
