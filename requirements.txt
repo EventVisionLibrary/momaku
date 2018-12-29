@@ -1,0 +1,4 @@
+numpy
+bindsnet==0.2.2
+glfw==1.7.0
+PyOpenGL==3.1.0
