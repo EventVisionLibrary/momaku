@@ -21,6 +21,6 @@ class ObjectBase(object):
         self.velocity = velocity    # [m/s]
 
     def update_dynamics(self, dt, new_velocity=None, *args, **kargs):
-        self.position = self.position + self.velocity * dt
         if new_velocity is not None:
             self.velocity = new_velocity
+        self.position = self.position + self.velocity * dt

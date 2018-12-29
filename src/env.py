@@ -50,13 +50,22 @@ class FallingStone():
 
     def __move_objects(self):
         for obj in self.objects:
-            new_velocity = self.__free_fall_velocity(obj)
+            if self.__check_on_the_surface(obj):
+                new_velocity = np.zeros((3))
+            else:
+                new_velocity = self.__free_fall_velocity(obj)
             obj.update_dynamics(dt=self.dt, new_velocity=new_velocity,
                                 angular_velocity=np.array([np.pi, 0, 0]))
 
     def __free_fall_velocity(self, obj):
         # TODO: implement air resistance
         return obj.velocity + self.dt * np.array([0, 0, 9.8])
+
+    def __check_on_the_surface(self, obj):
+        if obj.position[2] > 0:
+            return True
+        else:
+            return False
 
     def __move_subject(self, action):
         getattr(self.subject, action)(self.dt)
