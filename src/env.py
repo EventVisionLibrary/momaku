@@ -162,7 +162,7 @@ def events_to_image(events, width, height):
 if __name__ == '__main__':
     w, h = 800, 800
     env = FallingStone(render_width=w, render_height=h)
-    N = 30
+    N = 50
     executed_times = []
     for i in range(0, N):
         start = time.time()
@@ -172,6 +172,7 @@ if __name__ == '__main__':
         except Exception as inst:
             print(inst)
             break
+        print(i, action)
         image = events_to_image(events, w, h)
         executed_times.append(time.time() - start)
         cv2.imwrite("../fig/image" + str(i) + ".png", image)

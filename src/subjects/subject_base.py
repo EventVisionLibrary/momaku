@@ -24,9 +24,9 @@ class SubjectBase(ObjectBase):
         self.initial_velocity = velocity
 
     def update_dynamics(self, dt, new_direction, new_velocity):
+        self.velocity = new_velocity
         self.position += dt * self.velocity
         self.direction = new_direction
-        self.velocity = new_velocity
 
     def act(self, action_name, *args):
         """
