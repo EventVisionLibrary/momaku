@@ -82,10 +82,11 @@ def main():
         agent.stop_episode_and_train(obs, reward, done)
         R_list.append(R)
 
-    with open("../result/dqn/model.pickle", "wb") as f:
-        pickle.dump(agent, f)
     with open("../result/dqn/reward.pickel", "wb") as f:
         pickle.dump(R_list, f)
+    with open("../result/dqn/model.pickle", "wb") as f:
+        pickle.dump(agent, f)
+
     print('Finished.')
 
 if __name__ == '__main__':
