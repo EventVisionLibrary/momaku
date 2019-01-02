@@ -1,5 +1,6 @@
 # Copyright 2018 Event Vision Library.
 
+import copy
 import time
 
 import cv2
@@ -18,6 +19,13 @@ class FallingStone():
         self.dt = 0.03
         self.render_width = render_width
         self.render_height = render_height
+        self.config = {
+            "Cp": 0.05,
+            "Cm": 0.03,
+            "sigma_Cp": 0.0001,
+            "sigma_Cm": 0.0001,
+            "refractory_period": 1e-4 # time during which a pixel cannot fire events just after it fired one
+        }
         self.reset()
 
     def __init_subject(self):
@@ -113,10 +121,13 @@ class FallingStone():
         self.objects = self.__init_objects()
         self.subject = self.__init_subject()
         self.renderer = self.__init_renderer()
-        prev_image = np.zeros([self.renderer.display_height, self.renderer.display_width, 3])
+
         current_image = self.renderer.render_objects(self.objects)
-        self.prev_intensity = self.__rgb_to_intensity(prev_image)
         self.current_intensity = self.__rgb_to_intensity(current_image)
+        self.prev_intensity = copy.deepcopy(self.current_intensity)
+        self.ref_values = copy.deepcopy(self.current_intensity)
+
+        self.last_event_timestamp = np.zeros([self.render_height, self.render_width])
 
     def render(self, mode='human'):
         # TODO: enable rendering for debug
@@ -147,17 +158,48 @@ class FallingStone():
         pass
 
     def __calc_events(self):
-        # TODO: assign time stamp dynamically
-        diff = np.sign(self.current_intensity - self.prev_intensity).astype(np.int32)
-        event_index = np.where(np.abs(diff) > 0)
-        events = np.array([np.full(len(event_index[0]), self.timestamp, dtype=np.int32),
-                           event_index[0], event_index[1], diff[event_index]]).T
+        # compliment interpolation
+        events = []
+        for y in range(self.render_height):
+            for x in range(self.render_width):
+                current = self.current_intensity[y, x]
+                prev = self.prev_intensity[y, x]
+                if current == prev:
+                    continue    # no event
+                prev_cross = self.ref_values[y, x]
+
+                pol = 1.0 if current > prev else -1.0
+                C = self.config["Cp"] if pol > 0 else self.config["Cm"]
+                sigma_C = self.config["sigma_Cp"] if pol > 0 else self.config["sigma_Cm"]
+                if sigma_C > 0:
+                    C += np.random.normal(0, sigma_C)
+                current_cross = prev_cross
+                all_crossings = False
+                while True:
+                    # Consider every time when intensity changed over threshold C.
+                    current_cross += pol*C
+                    # print("pol: {}, current_cross: {}, prev: {}, current: {}".format(pol, current_cross, prev, current))
+                    if (pol > 0 and current_cross > prev and current_cross <= current) \
+                    or (pol < 0 and current_cross < prev and current_cross >= current):
+                        edt = (current_cross - prev) * self.dt / (current - prev)
+                        t = self.timestamp + edt
+                        last_t = self.last_event_timestamp[y, x]
+                        dt = t - last_t
+                        assert dt > 0
+                        if last_t == 0 or dt >= self.config["refractory_period"]:
+                            events.append((t, y, x, pol>0))
+                            self.last_event_timestamp[y, x] = t
+                        self.ref_values[y, x] = current_cross
+                    else:
+                        all_crossings = True
+                    if all_crossings:
+                        break
         return events
 
     def __rgb_to_intensity(self, rgb):
         r, g, b = rgb[:, :, 0], rgb[:, :, 1], rgb[:, :, 2]
         intensity = 0.2989 * r + 0.5870 * g + 0.1140 * b
-        return intensity
+        return intensity / 255.
 
 def events_to_image(events, width, height):
     image = np.zeros([height, width, 3], dtype=np.uint8)
