@@ -12,11 +12,11 @@ from renderer import Renderer
 COLLISION_THRESHOLD = 1.0
 
 class FallingStone(EnvBase):
-    def __init__(self, dt=1e-2, render_width=900, render_height=900):
+    def __init__(self, dt=1e-2, render_width=900, render_height=900, obs_as_img=False):
+        self.obs_as_img = obs_as_img
         super(FallingStone, self).__init__(dt, render_width, render_height)
 
     def reset(self):
-        self.done = False
         self.timestamp = 0.0
         self.objects = self.__init_objects()
         self.subject = self.__init_subject()
@@ -25,6 +25,16 @@ class FallingStone(EnvBase):
         current_image = self.renderer.render_objects(self.objects)
         self.prev_intensity = util.rgb_to_intensity(prev_image)
         self.current_intensity = util.rgb_to_intensity(current_image)
+
+        events = util.calc_events(self.current_intensity, self.prev_intensity, self.timestamp)
+        if self.obs_as_img:
+            obs = util.events_to_image(events, self.render_width, self.render_height)
+        else:
+            obs = events
+        r = 0
+        self.done = False
+        info = {}
+        return obs, r, self.done, info
 
     def __init_renderer(self):
         renderer = Renderer(camera_position=self.subject.position,
@@ -68,6 +78,10 @@ class FallingStone(EnvBase):
         self.current_intensity = util.rgb_to_intensity(current_image)
         events = util.calc_events(self.current_intensity, self.prev_intensity, self.timestamp)
         self.prev_intensity = self.current_intensity
+        if self.obs_as_img:
+            obs = util.events_to_image(events, self.render_width, self.render_height)
+        else:
+            obs = events
 
         # default reward (relative position to sphere)
         if self.__is_collision():
@@ -89,7 +103,7 @@ class FallingStone(EnvBase):
             self.done = True
 
         info = {}
-        return events, r, self.done, info
+        return obs, r, self.done, info
 
     # basic functions for objects and subjects
     def __move_objects(self):
