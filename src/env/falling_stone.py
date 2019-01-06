@@ -6,48 +6,49 @@ import time
 import cv2
 import numpy as np
 
-from objects.cube import SolidCube
-from objects.sphere import SolidSphere
+from env import EnvBase
+from env import physics, util
+
+import objects
+import subjects
 from renderer import Renderer
-from subjects.simple_walker import SimpleWalker
-from subjects.gopigo_simulator import Gopigo
 
 COLLISION_THRESHOLD = 1.0
 
-class FallingStone():
-    def __init__(self, dt=1e-2, render_width=900, render_height=900):
-        self.dt = 0.03
-        self.render_width = render_width
-        self.render_height = render_height
+class FallingStone(EnvBase):
+    def __init__(self, dt=1e-2, render_width=900, render_height=900, obs_as_img=False):
+        self.obs_as_img = obs_as_img
         self.config = {
-            "Cp": 0.05,
-            "Cm": 0.03,
+            "dt": dt,
+            "Cp": 0.05, # plus
+            "Cm": 0.03, # minus
             "sigma_Cp": 0.0001,
             "sigma_Cm": 0.0001,
-            "refractory_period": 1e-4 # time during which a pixel cannot fire events just after it fired one
+            "refractory_period": 1e-4  # time during which a pixel cannot fire events just after it fired one
         }
-        self.reset()
+        super(FallingStone, self).__init__(dt, render_width, render_height)
 
-    def __init_subject(self):
-        # subject = SimpleWalker()
-        subject = Gopigo()
-        subject.initialize_dynamics(position=np.array([-2, -6, -1], dtype=np.float32),
-                                    direction=np.array([4, 8, 3], dtype=np.float32),
-                                    velocity=np.array([4, 8, 0], dtype=np.float32))
-        return subject
+    def reset(self):
+        self.timestamp = 0.0
+        self.objects = self.__init_objects()
+        self.subject = self.__init_subject()
+        self.renderer = self.__init_renderer()
 
-    def __init_objects(self): 
-        objects = []
-        cube = SolidCube(size=1.0, color=np.array([0.5, 0.5, 0.0]))
-        cube.initialize_dynamics(position=np.array([0, 2, -1]),
-                                 direction=np.ones(3),
-                                 velocity=np.array([0., 0., 0.]))
-        objects.append(cube)
-        sphere = SolidSphere(radius=0.5)
-        sphere.initialize_dynamics(position=np.array([1, 1, -5]),
-                                   velocity=np.array([0, 0, 2]))
-        objects.append(sphere)
-        return objects
+        current_image = self.renderer.render_objects(self.objects)
+        self.current_intensity = util.rgb_to_intensity(current_image)
+        self.prev_intensity = copy.deepcopy(self.current_intensity)
+        self.ref_values = copy.deepcopy(self.current_intensity)
+        self.last_event_timestamp = np.zeros([self.render_height, self.render_width])
+
+        events = self.__calc_events(self.current_intensity, self.prev_intensity, self.timestamp)
+        if self.obs_as_img:
+            obs = util.events_to_image(events, self.render_width, self.render_height)
+        else:
+            obs = events
+        r = 0
+        self.done = False
+        info = {}
+        return obs, r, self.done, info
 
     def __init_renderer(self):
         renderer = Renderer(camera_position=self.subject.position,
@@ -56,27 +57,26 @@ class FallingStone():
                             height=self.render_height)
         return renderer
 
-    def __move_objects(self):
-        for obj in self.objects:
-            if self.__check_on_the_surface(obj):
-                new_velocity = np.zeros((3))
-            else:
-                new_velocity = self.__free_fall_velocity(obj)
-            obj.update_dynamics(dt=self.dt, new_velocity=new_velocity,
-                                angular_velocity=np.array([np.pi, 0, 0]))
+    def __init_subject(self):
+        # subject = subjects.SimpleWalker()
+        subject = subjects.Gopigo()
+        subject.initialize_dynamics(position=np.array([-2, -6, -1], dtype=np.float32),
+                                    direction=np.array([4, 8, 3], dtype=np.float32),
+                                    velocity=np.array([4, 8, 0], dtype=np.float32))
+        return subject
 
-    def __free_fall_velocity(self, obj):
-        # TODO: implement air resistance
-        return obj.velocity + self.dt * np.array([0, 0, 9.8])
-
-    def __check_on_the_surface(self, obj):
-        if obj.position[2] > 0:
-            return True
-        else:
-            return False
-
-    def __move_subject(self, action):
-        getattr(self.subject, action)(self.dt)
+    def __init_objects(self): 
+        objs = []
+        cube = objects.SolidCube(size=1.0, color=np.array([0.5, 0.5, 0.0]))
+        cube.initialize_dynamics(position=np.array([0, 2, -1]),
+                                 direction=np.ones(3),
+                                 velocity=np.array([0., 0., 0.]))
+        objs.append(cube)
+        sphere = objects.SolidSphere(radius=0.5)
+        sphere.initialize_dynamics(position=np.array([1, 1, -5]),
+                                   velocity=np.array([0, 0, 2]))
+        objs.append(sphere)
+        return objs
 
     def step(self, action):
         if self.done:
@@ -89,18 +89,22 @@ class FallingStone():
 
         # obs
         current_image = self.renderer.render_objects(self.objects, True)
-        self.current_intensity = self.__rgb_to_intensity(current_image)
-        events = self.__calc_events()
+        self.current_intensity = util.rgb_to_intensity(current_image)
+        events = self.__calc_events(dynamic_timestamp=True)
         self.prev_intensity = self.current_intensity
+        if self.obs_as_img:
+            obs = util.events_to_image(events, self.render_width, self.render_height)
+        else:
+            obs = events
 
         # default reward (relative position to sphere)
         if self.__is_collision():
             r = -10.0
             self.done = True
         else:
-            # extract solidsphere
+            # extract objects.solidsphere
             for obj in self.objects:
-                if isinstance(obj, SolidSphere):
+                if isinstance(obj, objects.SolidSphere):
                     r = self.__measure_distance(obj)*(-1.0)/10.0
             self.done = False
 
@@ -113,7 +117,7 @@ class FallingStone():
             self.done = True
 
         info = {}
-        return events, r, self.done, info
+        return obs, r, self.done, info
 
     def reset(self):
         self.done = False
@@ -123,41 +127,65 @@ class FallingStone():
         self.renderer = self.__init_renderer()
 
         current_image = self.renderer.render_objects(self.objects)
-        self.current_intensity = self.__rgb_to_intensity(current_image)
+        self.current_intensity = util.rgb_to_intensity(current_image)
         self.prev_intensity = copy.deepcopy(self.current_intensity)
         self.ref_values = copy.deepcopy(self.current_intensity)
-
         self.last_event_timestamp = np.zeros([self.render_height, self.render_width])
 
-    def render(self, mode='human'):
-        # TODO: enable rendering for debug
-        raise NotImplementedError
+    # basic functions for objects and subjects
+    def __move_objects(self):
+        for obj in self.objects:
+            if self.__check_on_the_surface(obj):
+                new_velocity = np.zeros((3))
+            else:
+                new_velocity = physics.free_fall_velocity(self.dt, obj)
+            obj.update_dynamics(dt=self.dt, new_velocity=new_velocity,
+                                angular_velocity=np.array([np.pi, 0, 0]))
+
+    def __move_subject(self, action):
+        getattr(self.subject, action)(self.dt)
+
+    def __check_on_the_surface(self, obj):
+        if obj.position[2] > 0:
+            return True
+        else:
+            return False
 
     def __is_collision(self):
         for obj in self.objects:
-            if isinstance(obj, SolidSphere):
+            if isinstance(obj, objects.SolidSphere):
                 if self.__check_sphere_collision(obj):
                     return True
-            if isinstance(obj, SolidCube):
+            if isinstance(obj, objects.SolidCube):
                 if self.__check_cube_collision(obj):
                     return True
         return False
 
-    def __measure_distance(self, sphere):
-        return np.sum((sphere.position - self.subject.position)**2)
-
     def __check_sphere_collision(self, sphere):
-        d = np.sum((sphere.position - self.subject.position)**2)
+        d = self.__measure_distance(sphere)
         #print("distance: ", np.sqrt(d))
         if d < (COLLISION_THRESHOLD+sphere.radius)**2:
             return True
         else:
             return False
 
+    def __measure_distance(self, sphere):
+        return np.sum((sphere.position - self.subject.position)**2)
+
     def __check_cube_collision(self, cube):
         pass
 
-    def __calc_events(self):
+    def __calc_events(self, dynamic_timestamp=True):
+        # functions for calculation of events
+
+        if not dynamic_timestamp:
+            diff = np.sign(self.current_intensity - self.prev_intensity).astype(np.int32)
+            diff = util.add_impulse_noise(diff, prob=1e-3)
+            event_index = np.where(np.abs(diff) > 0)
+            events = np.array([np.full(len(event_index[0]), self.timestamp, dtype=np.int32),
+                               event_index[0], event_index[1], diff[event_index]]).T
+            return events
+
         # compliment interpolation
         events = []
         for y in range(self.render_height):
@@ -178,7 +206,7 @@ class FallingStone():
                 while True:
                     # Consider every time when intensity changed over threshold C.
                     current_cross += pol*C
-                    # print("pol: {}, current_cross: {}, prev: {}, current: {}".format(pol, current_cross, prev, current))
+                    #print("pol: {}, current_cross: {}, prev: {}, current: {}".format(pol, current_cross, prev, current))
                     if (pol > 0 and current_cross > prev and current_cross <= current) \
                     or (pol < 0 and current_cross < prev and current_cross >= current):
                         edt = (current_cross - prev) * self.dt / (current - prev)
@@ -196,20 +224,6 @@ class FallingStone():
                         break
         return events
 
-    def __rgb_to_intensity(self, rgb):
-        r, g, b = rgb[:, :, 0], rgb[:, :, 1], rgb[:, :, 2]
-        intensity = 0.2989 * r + 0.5870 * g + 0.1140 * b
-        return intensity / 255.
-
-def events_to_image(events, width, height):
-    image = np.zeros([height, width, 3], dtype=np.uint8)
-    for (t, y, x, p) in events:
-        if p == 1:
-            image[y, x, 0] = 255
-        else:
-            image[y, x, 2] = 255
-    return image
-
 if __name__ == '__main__':
     w, h = 800, 800
     env = FallingStone(render_width=w, render_height=h)
@@ -224,7 +238,7 @@ if __name__ == '__main__':
             print(inst)
             break
         print(i, action)
-        image = events_to_image(events, w, h)
+        image = util.events_to_image(events, w, h)
         executed_times.append(time.time() - start)
         cv2.imwrite("../fig/image" + str(i) + ".png", image)
     print("Average Elapsed Time: {} s".format(np.mean(executed_times)))

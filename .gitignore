@@ -2,3 +2,10 @@
 .idea/
 */*/__pycache__/*
 fig/*
+!fig/.gitignore
+
+result/dqn/*
+!result/dqn/.gitkeep
+result/*
+!result/.gitkeep
+

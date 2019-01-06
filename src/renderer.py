@@ -37,11 +37,6 @@ class Renderer():
         self.setup_light()
         self.setup_perspective()
 
-    # def __del__(self):
-    #     print("deinit renderer")
-    #     glfw.destroy_window(self.window)
-    #     glfw.terminate()
-
     def setup_display(self):
         if not glfw.init():
             return

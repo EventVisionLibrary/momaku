@@ -4,7 +4,7 @@ import time
 import cv2
 
 from agents import create_network, Pipeline, select_softmax
-from env import FallingStone, events_to_image
+from env import FallingStone
 
 def main():
     # display size
