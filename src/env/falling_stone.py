@@ -90,7 +90,7 @@ class FallingStone(EnvBase):
         # obs
         current_image = self.renderer.render_objects(self.objects, True)
         self.current_intensity = util.rgb_to_intensity(current_image)
-        events = self.__calc_events(dynamic_timestamp=True)
+        events = self.__calc_events(dynamic_timestamp=False)
         self.prev_intensity = self.current_intensity
         if self.obs_as_img:
             obs = util.events_to_image(events, self.render_width, self.render_height)
@@ -223,22 +223,3 @@ class FallingStone(EnvBase):
                     if all_crossings:
                         break
         return events
-
-if __name__ == '__main__':
-    w, h = 800, 800
-    env = FallingStone(render_width=w, render_height=h)
-    N = 50
-    executed_times = []
-    for i in range(0, N):
-        start = time.time()
-        action = np.random.choice(env.subject.action_list)
-        try:
-            events, r, done, info = env.step(action=action)
-        except Exception as inst:
-            print(inst)
-            break
-        print(i, action)
-        image = util.events_to_image(events, w, h)
-        executed_times.append(time.time() - start)
-        cv2.imwrite("../fig/image" + str(i) + ".png", image)
-    print("Average Elapsed Time: {} s".format(np.mean(executed_times)))
