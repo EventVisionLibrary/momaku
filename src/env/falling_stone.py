@@ -1,5 +1,9 @@
 # Copyright 2018 Event Vision Library.
 
+import copy
+import time
+
+import cv2
 import numpy as np
 
 from env import EnvBase
@@ -14,6 +18,14 @@ COLLISION_THRESHOLD = 1.0
 class FallingStone(EnvBase):
     def __init__(self, dt=1e-2, render_width=900, render_height=900, obs_as_img=False):
         self.obs_as_img = obs_as_img
+        self.config = {
+            "dt": dt,
+            "Cp": 0.05, # plus
+            "Cm": 0.03, # minus
+            "sigma_Cp": 0.0001,
+            "sigma_Cm": 0.0001,
+            "refractory_period": 1e-4  # time during which a pixel cannot fire events just after it fired one
+        }
         super(FallingStone, self).__init__(dt, render_width, render_height)
 
     def reset(self):
@@ -21,12 +33,14 @@ class FallingStone(EnvBase):
         self.objects = self.__init_objects()
         self.subject = self.__init_subject()
         self.renderer = self.__init_renderer()
-        prev_image = np.zeros([self.renderer.display_height, self.renderer.display_width, 3])
-        current_image = self.renderer.render_objects(self.objects)
-        self.prev_intensity = util.rgb_to_intensity(prev_image)
-        self.current_intensity = util.rgb_to_intensity(current_image)
 
-        events = util.calc_events(self.current_intensity, self.prev_intensity, self.timestamp)
+        current_image = self.renderer.render_objects(self.objects)
+        self.current_intensity = util.rgb_to_intensity(current_image)
+        self.prev_intensity = copy.deepcopy(self.current_intensity)
+        self.ref_values = copy.deepcopy(self.current_intensity)
+        self.last_event_timestamp = np.zeros([self.render_height, self.render_width])
+
+        events = self.__calc_events(self.current_intensity, self.prev_intensity, self.timestamp)
         if self.obs_as_img:
             obs = util.events_to_image(events, self.render_width, self.render_height)
         else:
@@ -76,7 +90,7 @@ class FallingStone(EnvBase):
         # obs
         current_image = self.renderer.render_objects(self.objects, True)
         self.current_intensity = util.rgb_to_intensity(current_image)
-        events = util.calc_events(self.current_intensity, self.prev_intensity, self.timestamp)
+        events = self.__calc_events(dynamic_timestamp=False)
         self.prev_intensity = self.current_intensity
         if self.obs_as_img:
             obs = util.events_to_image(events, self.render_width, self.render_height)
@@ -104,6 +118,19 @@ class FallingStone(EnvBase):
 
         info = {}
         return obs, r, self.done, info
+
+    def reset(self):
+        self.done = False
+        self.timestamp = 0.0
+        self.objects = self.__init_objects()
+        self.subject = self.__init_subject()
+        self.renderer = self.__init_renderer()
+
+        current_image = self.renderer.render_objects(self.objects)
+        self.current_intensity = util.rgb_to_intensity(current_image)
+        self.prev_intensity = copy.deepcopy(self.current_intensity)
+        self.ref_values = copy.deepcopy(self.current_intensity)
+        self.last_event_timestamp = np.zeros([self.render_height, self.render_width])
 
     # basic functions for objects and subjects
     def __move_objects(self):
@@ -147,3 +174,52 @@ class FallingStone(EnvBase):
 
     def __check_cube_collision(self, cube):
         pass
+
+    def __calc_events(self, dynamic_timestamp=True):
+        # functions for calculation of events
+
+        if not dynamic_timestamp:
+            diff = np.sign(self.current_intensity - self.prev_intensity).astype(np.int32)
+            diff = util.add_impulse_noise(diff, prob=1e-3)
+            event_index = np.where(np.abs(diff) > 0)
+            events = np.array([np.full(len(event_index[0]), self.timestamp, dtype=np.int32),
+                               event_index[0], event_index[1], diff[event_index]]).T
+            return events
+
+        # compliment interpolation
+        events = []
+        for y in range(self.render_height):
+            for x in range(self.render_width):
+                current = self.current_intensity[y, x]
+                prev = self.prev_intensity[y, x]
+                if current == prev:
+                    continue    # no event
+                prev_cross = self.ref_values[y, x]
+
+                pol = 1.0 if current > prev else -1.0
+                C = self.config["Cp"] if pol > 0 else self.config["Cm"]
+                sigma_C = self.config["sigma_Cp"] if pol > 0 else self.config["sigma_Cm"]
+                if sigma_C > 0:
+                    C += np.random.normal(0, sigma_C)
+                current_cross = prev_cross
+                all_crossings = False
+                while True:
+                    # Consider every time when intensity changed over threshold C.
+                    current_cross += pol*C
+                    #print("pol: {}, current_cross: {}, prev: {}, current: {}".format(pol, current_cross, prev, current))
+                    if (pol > 0 and current_cross > prev and current_cross <= current) \
+                    or (pol < 0 and current_cross < prev and current_cross >= current):
+                        edt = (current_cross - prev) * self.dt / (current - prev)
+                        t = self.timestamp + edt
+                        last_t = self.last_event_timestamp[y, x]
+                        dt = t - last_t
+                        assert dt > 0
+                        if last_t == 0 or dt >= self.config["refractory_period"]:
+                            events.append((t, y, x, pol>0))
+                            self.last_event_timestamp[y, x] = t
+                        self.ref_values[y, x] = current_cross
+                    else:
+                        all_crossings = True
+                    if all_crossings:
+                        break
+        return events
