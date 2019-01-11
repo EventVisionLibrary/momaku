@@ -22,10 +22,10 @@ class Gopigo(SubjectBase):
         self.update_dynamics(dt, rot.dot(self.direction), rot.dot(self.initial_velocity))
 
     def left(self, dt):
+        rot = self.calc_rotation_matrix(theta=-0.05)
         self.update_dynamics(dt, rot.dot(self.direction), rot.dot(self.initial_velocity))
 
     def stop(self, dt):
-        rot = self.calc_rotation_matrix(theta=-0.05)
         self.update_dynamics(dt, self.direction, np.array([0.0, 0.0, 0.0]))
 
     def calc_rotation_matrix(self, theta):
