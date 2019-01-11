@@ -12,6 +12,8 @@ from env import physics, util
 import objects
 import subjects
 from renderer import Renderer
+import numba
+
 
 COLLISION_THRESHOLD = 1.0
 
@@ -40,7 +42,7 @@ class FallingStone(EnvBase):
         self.ref_values = copy.deepcopy(self.current_intensity)
         self.last_event_timestamp = np.zeros([self.render_height, self.render_width])
 
-        events = self.__calc_events(self.current_intensity, self.prev_intensity, self.timestamp)
+        events = self.__calc_events(self.timestamp)
         if self.obs_as_img:
             obs = util.events_to_image(events, self.render_width, self.render_height)
         else:
@@ -60,21 +62,33 @@ class FallingStone(EnvBase):
     def __init_subject(self):
         # subject = subjects.SimpleWalker()
         subject = subjects.Gopigo()
-        subject.initialize_dynamics(position=np.array([-2, -6, -1], dtype=np.float32),
-                                    direction=np.array([4, 8, 3], dtype=np.float32),
-                                    velocity=np.array([4, 8, 0], dtype=np.float32))
+
+        _p = np.random.random()
+        if _p < 0.33:
+            subject.initialize_dynamics(position=np.array([-2, -6, -1], dtype=np.float32),
+                                        direction=np.array([4, 8, 3], dtype=np.float32),
+                                        velocity=np.array([4, 8, 0], dtype=np.float32))
+        elif _p < 0.66:
+            subject.initialize_dynamics(position=np.array([4, 5, -1], dtype=np.float32),
+                                        direction=np.array([-7, -7, 3], dtype=np.float32),
+                                        velocity=np.array([-7, -7, 0], dtype=np.float32))
+        else:
+            subject.initialize_dynamics(position=np.array([-2.5, 4, -1], dtype=np.float32),
+                                        direction=np.array([6, -7, 3], dtype=np.float32),
+                                        velocity=np.array([6, -7, 0], dtype=np.float32))
+
         return subject
 
     def __init_objects(self): 
         objs = []
-        cube = objects.SolidCube(size=1.0, color=np.array([0.5, 0.5, 0.0]))
-        cube.initialize_dynamics(position=np.array([0, 2, -1]),
-                                 direction=np.ones(3),
-                                 velocity=np.array([0., 0., 0.]))
-        objs.append(cube)
+        # cube = objects.SolidCube(size=1.0, color=np.array([0.5, 0.5, 0.0]))
+        # cube.initialize_dynamics(position=np.array([0, 2, -1]),
+        #                          direction=np.ones(3),
+        #                          velocity=np.array([0., 0., 0.]))
+        # objs.append(cube)
         sphere = objects.SolidSphere(radius=0.5)
-        sphere.initialize_dynamics(position=np.array([1, 1, -5]),
-                                   velocity=np.array([0, 0, 2]))
+        sphere.initialize_dynamics(position=np.array([1, 1, -5]) + np.random.random(3) - 0.5,
+                                   velocity=np.array([0, 0, 2 + np.random.random() - 0.5]))
         objs.append(sphere)
         return objs
 
@@ -119,19 +133,6 @@ class FallingStone(EnvBase):
         info = {}
         return obs, r, self.done, info
 
-    def reset(self):
-        self.done = False
-        self.timestamp = 0.0
-        self.objects = self.__init_objects()
-        self.subject = self.__init_subject()
-        self.renderer = self.__init_renderer()
-
-        current_image = self.renderer.render_objects(self.objects)
-        self.current_intensity = util.rgb_to_intensity(current_image)
-        self.prev_intensity = copy.deepcopy(self.current_intensity)
-        self.ref_values = copy.deepcopy(self.current_intensity)
-        self.last_event_timestamp = np.zeros([self.render_height, self.render_width])
-
     # basic functions for objects and subjects
     def __move_objects(self):
         for obj in self.objects:
@@ -175,6 +176,7 @@ class FallingStone(EnvBase):
     def __check_cube_collision(self, cube):
         pass
 
+    @numba.jit
     def __calc_events(self, dynamic_timestamp=True):
         # functions for calculation of events
 
