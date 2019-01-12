@@ -1,7 +1,13 @@
 import cv2
 import numpy as np
 import pickle
+import signal
+import os
+import sys
 
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 import chainer
 import chainer.functions as F
@@ -11,13 +17,12 @@ import chainerrl
 from env import FallingStone
 
 class QFunction(chainer.Chain):
-
-    def __init__(self, n_actions, hidden_dim=100):
+    def __init__(self, input_w, input_h, n_actions, hidden_dim=100):
         super(QFunction, self).__init__()
         with self.init_scope():
             self.conv1 = L.Convolution2D(in_channels=3, out_channels=2, ksize=3)
             self.conv2 = L.Convolution2D(in_channels=2, out_channels=4, ksize=3)
-            self.l1 = L.Linear(4*76*76, hidden_dim)
+            self.l1 = L.Linear(4 * (input_w - 4) * (input_h - 4), hidden_dim)
             self.l2 = L.Linear(hidden_dim, hidden_dim)
             self.l3 = L.Linear(hidden_dim, n_actions)
             self.bn1 = L.BatchNormalization(size=2)
@@ -33,18 +38,39 @@ class QFunction(chainer.Chain):
         h = F.relu(self.bn4(self.l2(h)))
         return chainerrl.action_value.DiscreteActionValue(self.l3(h))
 
-
 def sampling_func():
     actions = [0, 1]
     return np.random.choice(actions)
 
-def main():
-    w = 80
-    h = 80
-    env = FallingStone(render_width=w, render_height=h, obs_as_img=True)
-    env.subject.action_list = ['forward', 'stop']
+def get_save_name(dir):
+    i = 0
+    agent_dir_name = os.path.join(dir, "model" + str(i) + ".pickle")
+    while os.path.exists(agent_dir_name):
+        agent_dir_name = os.path.join(dir, "model" + str(i) + ".pickle")
+        i += 1
+    reward_file_name = os.path.join(dir, "reward" + str(i - 1) + ".pickle")
+    return (agent_dir_name, reward_file_name)
 
-    q_func = QFunction(n_actions=2)
+def save_all(dir, agent, R_list):
+    agent_dir_name, reward_file_name = get_save_name(dir)
+    print("Saving models to ", agent_dir_name)
+    agent.save(agent_dir_name)
+    with open(reward_file_name, "wb") as f:
+        pickle.dump(R_list, f)
+
+def draw_reward_fig(dir, R_list):
+    plt.plot(np.array(R_list))
+    plt.savefig(os.path.join(dir, "reward.png"))
+    plt.close()
+
+def main():
+    w = 240
+    h = 180
+    env = FallingStone(dt=0.03, render_width=w, render_height=h, obs_as_img=True)
+    # env.subject.action_list = ['forward', 'stop']
+    savedir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../result/dqn")
+
+    q_func = QFunction(input_w=w, input_h=h, n_actions=2)
     optimizer = chainer.optimizers.Adam(eps=1e-2)
     optimizer.setup(q_func)
     gamma = 0.95
@@ -60,8 +86,15 @@ def main():
         target_update_interval=50, phi=phi)
 
     n_episodes = 30
-    max_episode_len = 34 # 30 fps, 1 s
+    max_episode_len = 34        # 30 fps, 1 s
     R_list = []
+
+    def handler(signal, frame):
+        print("Shutting down...")
+        save_all(savedir, agent, R_list)
+        sys.exit(0)
+    signal.signal(signal.SIGINT, handler)
+
     for i in range(1, n_episodes + 1):
         obs, _, _, _ = env.reset()
         reward = 0
@@ -81,12 +114,9 @@ def main():
             print('episode:', i, 'R:', R, 'statistics:', agent.get_statistics())
         agent.stop_episode_and_train(obs, reward, done)
         R_list.append(R)
-
-    with open("../result/dqn/reward.pickel", "wb") as f:
-        pickle.dump(R_list, f)
-    with open("../result/dqn/model.pickle", "wb") as f:
-        pickle.dump(agent, f)
-
+        draw_reward_fig(savedir, R_list)
+        
+    save_all(savedir, agent, R_list)
     print('Finished.')
 
 if __name__ == '__main__':
