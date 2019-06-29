@@ -9,3 +9,4 @@ result/dqn/*
 result/*
 !result/.gitkeep
 
+.DS_Store

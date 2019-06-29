@@ -8,7 +8,7 @@ class Gopigo(SubjectBase):
     Simple Simulator for GoPiGo
     """
     def __init__(self, mass=0.6):
-        self.action_list = ['forward', 'stop']
+        self.action_list = ['forward', 'right', 'left']
         super(Gopigo, self).__init__(mass)
 
     def forward(self, dt):
@@ -18,11 +18,11 @@ class Gopigo(SubjectBase):
         self.update_dynamics(dt, self.direction, self.initial_velocity * np.array([-1, -1, 0]))
 
     def right(self, dt):
-        rot = self.calc_rotation_matrix(theta=0.05)
+        rot = self.calc_rotation_matrix(theta=-0.05)
         self.update_dynamics(dt, rot.dot(self.direction), rot.dot(self.initial_velocity))
 
     def left(self, dt):
-        rot = self.calc_rotation_matrix(theta=-0.05)
+        rot = self.calc_rotation_matrix(theta=0.05)
         self.update_dynamics(dt, rot.dot(self.direction), rot.dot(self.initial_velocity))
 
     def stop(self, dt):

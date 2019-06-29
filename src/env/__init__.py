@@ -2,5 +2,6 @@
 
 from env.env_base import EnvBase
 from env.falling_stone import FallingStone
+from env.bouncing_ball import BouncingBall
 from env.util import *
 from env.physics import *

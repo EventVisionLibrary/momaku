@@ -1,5 +1,6 @@
 # Copyright 2018 Event Vision Library.
 
+import numba
 import numpy as np
 
 COLLISION_THRESHOLD = 1.0
