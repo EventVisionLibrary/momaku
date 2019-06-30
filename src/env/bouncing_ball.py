@@ -1,11 +1,9 @@
 # Copyright 2018 Event Vision Library.
 
-import copy
 import time
 
 import cv2
 import numpy as np
-from numpy import linalg as LA
 
 from env import EnvBase
 from env import physics, util
@@ -13,22 +11,13 @@ from env import physics, util
 import objects
 import subjects
 from renderer import Renderer
-import numba
-
 
 COLLISION_THRESHOLD = 1.0
 
 class BouncingBall(EnvBase):
     def __init__(self, dt=1e-2, render_width=900, render_height=900, obs_as_img=False):
         self.obs_as_img = obs_as_img
-        self.config = {
-            "dt": dt,
-            "Cp": 0.05, # plus
-            "Cm": 0.03, # minus
-            "sigma_Cp": 0.0001,
-            "sigma_Cm": 0.0001,
-            "refractory_period": 1e-4  # time during which a pixel cannot fire events just after it fired one
-        }
+        self.config = self.initialize_esim_config(dt, render_width, render_height)
         super(BouncingBall, self).__init__(dt, render_width, render_height)
 
     def reset(self):
@@ -37,17 +26,7 @@ class BouncingBall(EnvBase):
         self.subject = self.__init_subject()
         self.renderer = self.__init_renderer()
 
-        current_image = self.renderer.render_objects(self.objects)
-        self.current_intensity = util.rgb_to_intensity(current_image)
-        self.prev_intensity = copy.deepcopy(self.current_intensity)
-        self.ref_values = copy.deepcopy(self.current_intensity)
-        self.last_event_timestamp = np.zeros([self.render_height, self.render_width])
-
-        events = self.__calc_events(self.timestamp)
-        if self.obs_as_img:
-            obs = util.events_to_image(events, self.render_width, self.render_height)
-        else:
-            obs = events
+        obs = self.reset_esim_param()
         r = 0
         self.done = False
         info = {}
@@ -82,116 +61,37 @@ class BouncingBall(EnvBase):
         return objs
 
     def step(self, action):
-        if self.done:
-            raise Exception("The game already finished.")
+        self.check_done()
         self.timestamp += self.dt
-        self.__move_objects()
-        self.__move_subject(action)
+        self.move_objects_with_gravity()
+        self.move_subject(action)
         self.renderer.update_perspective(
             self.subject.position, self.subject.position + self.subject.direction)
 
-        # obs
-        current_image = self.renderer.render_objects(self.objects, True)
-        self.current_intensity = util.rgb_to_intensity(current_image)
-        events = self.__calc_events(dynamic_timestamp=False)
-        self.prev_intensity = self.current_intensity
-        if self.obs_as_img:
-            obs = util.events_to_image(events, self.render_width, self.render_height)
-        else:
-            obs = events
+        self.prev_intensity, self.ref_values, self.last_event_timestamp, obs = \
+            self.step_esim_param(self.timestamp, self.config, self.prev_intensity,
+                                 self.ref_values, self.last_event_timestamp)
 
-        if self.__is_collision():
-            self.done = True
-            r = 0.0
-        else:
-            for obj in self.objects:
-                r = 1.0 / (self.__measure_angle(obj) + 1.)
-
-        if self.timestamp > 1.0:
-            self.done = True
-
+        r, self.done = self.get_reward_and_done()
         info = {}
         return obs, r, self.done, info
 
-    # basic functions for objects and subjects
-    def __move_objects(self):
-        for obj in self.objects:
-            new_velocity = physics.free_fall_velocity(self.dt, obj)
-            obj.update_dynamics(dt=self.dt, new_velocity=new_velocity,
-                                angular_velocity=np.array([np.pi, 0, 0]))
-
-    def __move_subject(self, action):
-        getattr(self.subject, action)(self.dt)
+    def get_reward_and_done(self):
+        if self.__is_collision():
+            done = True
+            r = 0.0
+        else:
+            done = False
+            for obj in self.objects:
+                r = 1.0 / (physics.measure_angle(obj.position - self.subject.position,
+                                                 self.subject.velocity) + 1.)
+        if self.timestamp > 1.0:
+            done = True
+        return r, done
 
     def __is_collision(self):
         for obj in self.objects:
-            if self.__check_sphere_collision(obj):
+            if physics.check_sphere_collision(obj, self.subject, COLLISION_THRESHOLD):
                 return True
         return False
 
-    def __check_sphere_collision(self, sphere):
-        d = self.__measure_distance(sphere)
-        #print("distance: ", np.sqrt(d))
-        if d < (COLLISION_THRESHOLD+sphere.radius)**2:
-            return True
-        else:
-            return False
-
-    def __measure_distance(self, sphere):
-        return np.sum((sphere.position - self.subject.position)**2)
-
-    def __measure_angle(self, sphere):
-        vec1 = sphere.position - self.subject.position
-        vec2 = self.subject.velocity
-        theta = np.arccos(np.clip(np.dot(vec1, vec2) / (LA.norm(vec1) * LA.norm(vec2)), -1.0, 1.0))
-        return np.abs(theta)
-
-    @numba.jit
-    def __calc_events(self, dynamic_timestamp=True):
-        # functions for calculation of events
-
-        if not dynamic_timestamp:
-            diff = np.sign(self.current_intensity - self.prev_intensity).astype(np.int32)
-            diff = util.add_impulse_noise(diff, prob=1e-3)
-            event_index = np.where(np.abs(diff) > 0)
-            events = np.array([np.full(len(event_index[0]), self.timestamp, dtype=np.int32),
-                               event_index[0], event_index[1], diff[event_index]]).T
-            return events
-
-        # compliment interpolation
-        events = []
-        for y in range(self.render_height):
-            for x in range(self.render_width):
-                current = self.current_intensity[y, x]
-                prev = self.prev_intensity[y, x]
-                if current == prev:
-                    continue    # no event
-                prev_cross = self.ref_values[y, x]
-
-                pol = 1.0 if current > prev else -1.0
-                C = self.config["Cp"] if pol > 0 else self.config["Cm"]
-                sigma_C = self.config["sigma_Cp"] if pol > 0 else self.config["sigma_Cm"]
-                if sigma_C > 0:
-                    C += np.random.normal(0, sigma_C)
-                current_cross = prev_cross
-                all_crossings = False
-                while True:
-                    # Consider every time when intensity changed over threshold C.
-                    current_cross += pol*C
-                    #print("pol: {}, current_cross: {}, prev: {}, current: {}".format(pol, current_cross, prev, current))
-                    if (pol > 0 and current_cross > prev and current_cross <= current) \
-                    or (pol < 0 and current_cross < prev and current_cross >= current):
-                        edt = (current_cross - prev) * self.dt / (current - prev)
-                        t = self.timestamp + edt
-                        last_t = self.last_event_timestamp[y, x]
-                        dt = t - last_t
-                        assert dt > 0
-                        if last_t == 0 or dt >= self.config["refractory_period"]:
-                            events.append((t, y, x, pol>0))
-                            self.last_event_timestamp[y, x] = t
-                        self.ref_values[y, x] = current_cross
-                    else:
-                        all_crossings = True
-                    if all_crossings:
-                        break
-        return events
