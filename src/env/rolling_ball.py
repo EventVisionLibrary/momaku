@@ -14,17 +14,16 @@ from renderer import Renderer
 
 COLLISION_THRESHOLD = 1.0
 
-class BouncingBall(EnvBase):
-    def __init__(self, dt=1e-2, render_width=900, render_height=900,
-                 obs_as_img=False, subject_action_list=['forward', 'right', 'left']):
+class RollingBall(EnvBase):
+    def __init__(self, dt=1e-2, render_width=900, render_height=900, obs_as_img=False):
         self.obs_as_img = obs_as_img
         self.config = self.initialize_esim_config(dt, render_width, render_height)
-        super(BouncingBall, self).__init__(dt, render_width, render_height, subject_action_list)
+        super(RollingBall, self).__init__(dt, render_width, render_height)
 
     def reset(self):
         self.timestamp = 0.0
         self.objects = self.__init_objects()
-        self.subject = self.__init_subject(self.subject_action_list)
+        self.subject = self.__init_subject()
         self.renderer = self.__init_renderer()
 
         obs = self.reset_esim_param()
@@ -40,8 +39,8 @@ class BouncingBall(EnvBase):
                             height=self.render_height)
         return renderer
 
-    def __init_subject(self, action_list):
-        subject = subjects.Gopigo(action_list)
+    def __init_subject(self):
+        subject = subjects.Gopigo()
         _p = np.random.random()
         subject.initialize_dynamics(position=np.array([-2, -6, -1], dtype=np.float32),
                                     direction=np.array([4, 8, 3], dtype=np.float32),
@@ -53,11 +52,11 @@ class BouncingBall(EnvBase):
         _p = np.random.random()
         sphere = objects.SolidSphere(radius=0.5)
         # if _p < 0.5:
-        sphere.initialize_dynamics(position=np.array([0, 6, -5]) + np.random.random(3) - 0.5,
-                                   velocity=np.array([20, 15, 2 + np.random.random() - 0.5]))
-        # # else:
-        # sphere.initialize_dynamics(position=np.array([0, 6, -5]) + np.random.random(3) - 0.5,
-        #                             velocity=np.array([6, 10, 2 + np.random.random() - 0.5]))
+        sphere.initialize_dynamics(position=np.array([2, 10, -5]) + np.random.random(3) - 0.5,
+                                    velocity=np.array([0, 2, 2 + np.random.random() - 0.5]))
+        # else:
+        #     sphere.initialize_dynamics(position=np.array([4, 2, -5]) + np.random.random(3) - 0.5,
+        #                                velocity=np.array([1, 2, 2 + np.random.random() - 0.5]))
         objs.append(sphere)
         return objs
 
@@ -84,10 +83,10 @@ class BouncingBall(EnvBase):
         else:
             done = False
             for obj in self.objects:
-                angle = physics.measure_angle(obj.position[:2] - self.subject.position[:2], self.subject.direction[:2])
-                r = 10 - angle * 10
-
-        # print(obj.position, self.subject.velocity, angle, r)
+                r = 1.0 / (physics.measure_angle(obj.position - self.subject.position,
+                                                 self.subject.velocity) + 1.)
+        if self.timestamp > 1.0:
+            done = True
         return r, done
 
     def __is_collision(self):

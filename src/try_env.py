@@ -4,12 +4,13 @@ import time
 import numpy as np
 import cv2
 
-from env import FallingStone
+from env import FallingStone, RollingBall, BouncingBall
 from env import events_to_image
 
 if __name__ == '__main__':
     w, h = 800, 800
-    env = FallingStone(dt=0.01, render_width=w, render_height=h)
+    env = BouncingBall(dt=0.01, render_width=w, render_height=h,
+                       subject_action_list=['right', 'left'])
     N = 100
     executed_times = []
     selfdir = os.path.dirname(os.path.abspath(__file__))
@@ -18,6 +19,7 @@ if __name__ == '__main__':
     for i in range(0, N):
         start = time.time()
         action = np.random.choice(env.subject.action_list)
+        # action = 'stop' # np.random.choice(env.subject.action_list)
         try:
             events, r, done, info = env.step(action=action)
         except Exception as inst:

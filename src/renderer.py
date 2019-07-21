@@ -31,7 +31,7 @@ class Renderer():
         self.light_specular = [1.0, 1.0, 1.0]
 
         self.camera_position = camera_position
-        self.target_position = target_position
+        self.target_position = self.update_reference_to_center(target_position)
 
         self.setup_display()
         self.setup_light()
@@ -69,8 +69,17 @@ class Renderer():
 
     def update_perspective(self, new_camera_position, new_target_position):
         self.camera_position = new_camera_position
-        self.target_position = new_target_position
+        self.target_position = self.update_reference_to_center(new_target_position)
         self.setup_perspective()
+
+    def update_reference_to_center(self, target):
+        rot = self.calc_rotation_matrix(theta=np.pi / -4)
+        return rot.dot(target)
+
+    def calc_rotation_matrix(self, theta):
+        return np.array([[np.cos(theta), -np.sin(theta), 0],
+                         [np.sin(theta), np.cos(theta), 0],
+                         [0, 0, 1.0]])
 
     def __draw_axis(self):
         glLineWidth(3.0)

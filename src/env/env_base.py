@@ -9,8 +9,9 @@ from env import physics, util
 COLLISION_THRESHOLD = 1.0
 
 class EnvBase():
-    def __init__(self, dt, render_width, render_height):
+    def __init__(self, dt, render_width, render_height, subject_action_list):
         self.dt = dt
+        self.subject_action_list = subject_action_list
         self.render_width = render_width
         self.render_height = render_height
         self.reset()

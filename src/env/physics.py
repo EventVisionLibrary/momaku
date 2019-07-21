@@ -18,7 +18,6 @@ def measure_angle(vec1, vec2):
     """
     theta = np.arccos(np.clip(np.dot(vec1, vec2) / (LA.norm(vec1) * LA.norm(vec2)), -1.0, 1.0))
     return np.abs(theta)
-
 def check_sphere_collision(sphere, self_obj, collision_threshold):
     d = measure_distance(sphere.position, self_obj.position)
     if d < (collision_threshold + sphere.radius) ** 2:

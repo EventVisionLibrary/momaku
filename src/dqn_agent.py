@@ -1,5 +1,3 @@
-
-
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -8,6 +6,8 @@ import chainer.functions as F
 import chainer.links as L
 import chainerrl
 import pickle
+import numpy as np
+import os
 
 class QFunction(chainer.Chain):
     def __init__(self, input_w, input_h, n_actions, hidden_dim=100):
@@ -48,7 +48,7 @@ def save_all(dir, agent, R_list):
     with open(reward_file_name, "wb") as f:
         pickle.dump(R_list, f)
 
-def draw_reward_fig(dir, R_list):
+def draw_reward_fig(dir, fname, R_list):
     plt.plot(np.array(R_list))
-    plt.savefig(os.path.join(dir, "reward.png"))
+    plt.savefig(os.path.join(dir, fname))
     plt.close()
