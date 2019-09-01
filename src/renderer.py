@@ -224,6 +224,6 @@ if __name__ == "__main__":
         target_position[0] -= 0.05
         target_position[1] -= 0.05
         renderer.update_perspective(camera_position, target_position)
-        image = renderer.render_objects([cube, sphere], show_axis=True)
+        image = renderer.render_objects([cube, sphere], show_axis=False)
         cv2.imwrite("../fig/image" + str(i) + ".png", image)
     print("Average Elapsed Time: {} s".format((time.time()-start)/N))

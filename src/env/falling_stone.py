@@ -22,6 +22,8 @@ class FallingStone(EnvBase):
         self.config = self.initialize_esim_config(dt, render_width, render_height)
         super(FallingStone, self).__init__(dt, render_width, render_height, subject_action_list)
 
+        self.setp_i = 0
+
     def reset(self):
         self.timestamp = 0.0
         self.objects = self.__init_objects()
@@ -31,6 +33,9 @@ class FallingStone(EnvBase):
         r = 0
         self.done = False
         info = {}
+
+        self.setp_i = 0
+
         return obs, r, self.done, info
 
     def __init_renderer(self):
@@ -76,26 +81,18 @@ class FallingStone(EnvBase):
         self.renderer.update_perspective(
             self.subject.position, self.subject.position + self.subject.direction)
 
-        # obs
-        # current_image = self.renderer.render_objects(self.objects, True)
-        # current_intensity = util.rgb_to_intensity(current_image)
-        # events, self.ref_values, self.last_event_timestamp \
-        #     = util.calc_events_from_image(current_intensity, self.prev_intensity,
-        #                                   self.ref_values, self.timestamp,
-        #                                   self.last_event_timestamp, self.config,
-        #                                   dynamic_timestamp=False)
-
-        # self.prev_intensity = current_intensity
-        # if self.obs_as_img:
-        #     obs = util.events_to_image(events, self.render_width, self.render_height)
-        # else:
-        #     obs = events
+        image = self.renderer.render_objects(self.objects, show_axis=True)
+        cv2.imwrite("../fig/image" + str(self.setp_i) + ".png", image)
 
         self.prev_intensity, self.ref_values, self.last_event_timestamp, obs = \
             self.step_esim_param(self.timestamp, self.config, self.prev_intensity,
                                  self.ref_values, self.last_event_timestamp)
         r, self.done = self.get_reward_and_done(action)
         info = {}
+
+        cv2.imwrite("../fig/obs" + str(self.setp_i) + ".png", obs)
+        self.setp_i += 1
+
         return obs, r, self.done, info
 
     def get_reward_and_done(self, action):
@@ -112,7 +109,7 @@ class FallingStone(EnvBase):
 
         # more forward, more reward
         if action == "forward":
-            r += 0.5
+            r += 1.0
 
         # add done judgement from timestamp
         if self.timestamp > 1.0:

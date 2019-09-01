@@ -45,10 +45,10 @@ def save_all(dir, agent, R_list):
     agent_dir_name, reward_file_name = get_save_name(dir)
     print("Saving models to ", agent_dir_name)
     agent.save(agent_dir_name)
-    with open(reward_file_name, "wb") as f:
+    with open(os.path.join(agent_dir_name, reward_file_name), "wb") as f:
         pickle.dump(R_list, f)
 
-def draw_reward_fig(dir, fname, R_list):
+def draw_reward_fig(dire, fname, R_list):
     plt.plot(np.array(R_list))
-    plt.savefig(os.path.join(dir, fname))
+    plt.savefig(os.path.join(dire, fname))
     plt.close()

@@ -17,7 +17,8 @@ def sampling_func():
 def main():
     w = 240
     h = 180
-    env = FallingStone(dt=0.03, render_width=w, render_height=h,
+    dt = 0.01   # 100 fps
+    env = FallingStone(dt=dt, render_width=w, render_height=h,
                        obs_as_img=True, subject_action_list=['forward', 'stop'])
     env.subject.set_action_list(['forward', 'stop'])
     savedir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../result/dqn/avoidance")
@@ -35,10 +36,11 @@ def main():
     agent = chainerrl.agents.DoubleDQN(
         q_func, optimizer, replay_buffer, gamma, explorer,
         replay_start_size=100, update_interval=1,
-        target_update_interval=50, phi=phi)
+        target_update_interval=100, phi=phi)
+        # target_update_interval=100, phi=phi) could be larger
 
     n_episodes = 50
-    max_episode_len = 34        # 30 fps, 1 s
+    max_episode_len = int(1.0 / dt)        # 30 fps, 1 s
     R_list_train = []
     R_list_eval = []
 
@@ -66,7 +68,10 @@ def main():
             print('Training episode:', i, 'R:', R, 'statistics:', agent.get_statistics())
         agent.stop_episode_and_train(obs, reward, done)
         R_list_train.append(R)
-        draw_reward_fig(savedir, 'reward_train.png' ,R_list_train)
+
+        _, fname = get_save_name(savedir)
+        fname = fname[:fname.rfind('.pickle')] + '_train.png'
+        draw_reward_fig(savedir, fname ,R_list_train)
 
         # evaluation session
         obs, reward, done, _ = env.reset()
@@ -85,7 +90,10 @@ def main():
             print('Evaluation episode:', i, 'R:', R, 'statistics:', agent.get_statistics())
         agent.stop_episode()
         R_list_eval.append(R)
-        draw_reward_fig(savedir, 'reward_eval.png' ,R_list_eval)
+
+        _, fname = get_save_name(savedir)
+        fname = fname[:fname.rfind('.pickle')] + '_eval.png'
+        draw_reward_fig(savedir, fname ,R_list_eval)
 
     save_all(savedir, agent, R_list_eval)
     print('Finished.')
