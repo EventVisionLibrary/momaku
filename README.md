@@ -3,9 +3,19 @@ momaku - A simulator for event vision
 # Overview
 
 
-# Requirements
+# Setup
 
-See requirements.txt.
+## Install glfw
+
+```
+sudo apt install libglfw3 libglfw3-dev
+```
+
+## Install requirements
+
+```
+pip install -r requirements.txt
+```
 
 # Usage
 
@@ -13,6 +23,14 @@ See requirements.txt.
 
 ```
 python env.py
+```
+
+
+## Training with DQN
+
+```
+cd src
+python dqn_train_avoidance.py 
 ```
 
 ## Training with SNN

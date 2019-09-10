@@ -1,3 +1,7 @@
+chainer==6.3.0
+chainerrl==0.7.0
+matplotlib==3.1.1
+numba==0.45.1
 numpy
 bindsnet==0.2.2
 glfw==1.7.0
