@@ -38,7 +38,7 @@ def main():
         replay_start_size=100, update_interval=1,
         target_update_interval=50, phi=phi)
 
-    n_episodes = 80
+    n_episodes = 50
     # max_episode_len = 40        # 30 fps, 1 s
     max_episode_len = int(1.0 / dt)
     R_list_train = []
@@ -46,7 +46,7 @@ def main():
 
     def handler(signal, frame):
         print("Shutting down...")
-        save_all(savedir, agent, R_list)
+        save_all(savedir, agent, R_list_eval)
         sys.exit(0)
     signal.signal(signal.SIGINT, handler)
 
